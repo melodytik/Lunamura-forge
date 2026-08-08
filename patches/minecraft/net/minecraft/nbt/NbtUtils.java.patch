@@ -1,0 +1,10 @@
+--- a/net/minecraft/nbt/NbtUtils.java
++++ b/net/minecraft/nbt/NbtUtils.java
+@@ -197,6 +_,7 @@
+    }
+ 
+    public static UUID m_129233_(Tag p_129234_) {
++      if (p_129234_ == null) return UUID.randomUUID(); // Lunamura TODO
+       if (p_129234_.m_6458_() != IntArrayTag.f_128599_) {
+          throw new IllegalArgumentException("Expected UUID-Tag to be of type " + IntArrayTag.f_128599_.m_5987_() + ", but found " + p_129234_.m_6458_().m_5987_() + ".");
+       } else {

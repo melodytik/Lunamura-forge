@@ -1,0 +1,48 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url = 'https://maven.aliyun.com/repository/public' }
+        gradlePluginPortal()
+        mavenLocal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+    }
+}
+
+buildscript {
+    dependencies {
+        classpath('com.google.code.gson:gson') {
+            version {
+                strictly '2.10.1'
+            }
+        }
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+}
+
+rootProject.name = 'Lunamura'
+
+include 'fmlloader'
+include 'fmlcore'
+include 'mclanguage'
+include 'javafmllanguage'
+include 'lowcodelanguage'
+
+include ':mcp'
+include ':clean'
+include ':mohist'
+
+include 'mohistlauncher'
+include 'mohistplugins'
+
+project(":mcp").projectDir = file("projects/mcp")
+project(":clean").projectDir = file("projects/clean")
+project(":mohist").projectDir = file("projects/mohist")
+
+project(":fmlloader").projectDir = file("forge/fmlloader")
+project(":fmlcore").projectDir = file("forge/fmlcore")
+project(":mclanguage").projectDir = file("forge/mclanguage")
+project(":javafmllanguage").projectDir = file("forge/javafmllanguage")
+project(":lowcodelanguage").projectDir = file("forge/lowcodelanguage")

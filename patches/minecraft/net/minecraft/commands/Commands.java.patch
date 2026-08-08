@@ -1,0 +1,283 @@
+--- a/net/minecraft/commands/Commands.java
++++ b/net/minecraft/commands/Commands.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.commands;
+ 
++import com.google.common.base.Joiner;
+ import com.google.common.collect.Maps;
++import com.mohistmc.paper.adventure.PaperAdventure;
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.ParseResults;
+ import com.mojang.brigadier.StringReader;
+@@ -13,13 +_,17 @@
+ import com.mojang.brigadier.tree.CommandNode;
+ import com.mojang.brigadier.tree.RootCommandNode;
+ import com.mojang.logging.LogUtils;
++import java.util.Collection;
++import java.util.LinkedHashSet;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Predicate;
+ import java.util.function.UnaryOperator;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
++import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.Util;
+@@ -118,6 +_,9 @@
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.util.profiling.jfr.JvmProfiler;
++import org.bukkit.craftbukkit.v1_20_R1.util.CraftChatMessage;
++import org.bukkit.event.player.PlayerCommandSendEvent;
++import org.bukkit.event.server.ServerCommandEvent;
+ import org.slf4j.Logger;
+ 
+ public class Commands {
+@@ -193,7 +_,7 @@
+          JfrCommand.m_183645_(this.f_82090_);
+       }
+ 
+-      if (SharedConstants.f_136183_) {
++      if (net.minecraftforge.gametest.ForgeGameTestHooks.isGametestEnabled()) {
+          TestCommand.m_127946_(this.f_82090_);
+          SpawnArmorTrimsCommand.m_266283_(this.f_82090_);
+       }
+@@ -218,7 +_,14 @@
+       if (p_230943_.f_82144_) {
+          PublishCommand.m_138184_(this.f_82090_);
+       }
+-
++      net.minecraftforge.event.ForgeEventFactory.onCommandRegister(this.f_82090_, p_230943_, p_230944_);
++
++      this.f_82090_.setConsumer((p_230954_, p_230955_, p_230956_) -> {
++         p_230954_.getSource().m_81342_(p_230954_, p_230955_, p_230956_);
++      });
++   }
++
++   public Commands() {
+       this.f_82090_.setConsumer((p_230954_, p_230955_, p_230956_) -> {
+          p_230954_.getSource().m_81342_(p_230954_, p_230955_, p_230956_);
+       });
+@@ -230,12 +_,62 @@
+       return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
+    }
+ 
++   // CraftBukkit start
++   public int dispatchServerCommand(CommandSourceStack sender, String command) {
++      Joiner joiner = Joiner.on(" ");
++      if (command.startsWith("/")) {
++         command = command.substring(1);
++      }
++
++      ServerCommandEvent event = new ServerCommandEvent(sender.getBukkitSender(), command);
++      org.bukkit.Bukkit.getPluginManager().callEvent(event);
++      if (event.isCancelled()) {
++         return 0;
++      }
++      command = event.getCommand();
++
++      String[] args = command.split(" ");
++
++      String cmd = args[0];
++      if (cmd.startsWith("minecraft:")) cmd = cmd.substring("minecraft:".length());
++      if (cmd.startsWith("bukkit:")) cmd = cmd.substring("bukkit:".length());
++
++      // Block disallowed commands
++      if (cmd.equalsIgnoreCase("stop") || cmd.equalsIgnoreCase("kick") || cmd.equalsIgnoreCase("op")
++              || cmd.equalsIgnoreCase("deop") || cmd.equalsIgnoreCase("ban") || cmd.equalsIgnoreCase("ban-ip")
++              || cmd.equalsIgnoreCase("pardon") || cmd.equalsIgnoreCase("pardon-ip") || cmd.equalsIgnoreCase("reload")) {
++         return 0;
++      }
++
++      // Handle vanilla commands;
++      if (sender.m_81372_().getCraftServer().getCommandBlockOverride(args[0])) {
++         args[0] = "minecraft:" + args[0];
++      }
++
++      String newCommand = joiner.join(args);
++      return this.performPrefixedCommand(sender, newCommand, newCommand);
++   }
++   // CraftBukkit end
++
+    public int m_230957_(CommandSourceStack p_230958_, String p_230959_) {
+-      p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
+-      return this.m_242674_(this.f_82090_.parse(p_230959_, p_230958_), p_230959_);
+-   }
++      // CraftBukkit start
++      return this.performPrefixedCommand(p_230958_, p_230959_, p_230959_);
++   }
++
++   public int performPrefixedCommand(CommandSourceStack commandlistenerwrapper, String s, String label) {
++      s = s.startsWith("/") ? s.substring(1) : s;
++      return this.performCommand(this.f_82090_.parse(s, commandlistenerwrapper), s, label);
++      // CraftBukkit end
++   }
++
++   // Lunamura start - add field to compat with mods
++   private final AtomicReference<String> lunamura$label = new AtomicReference<>();
+ 
+    public int m_242674_(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
++      var label = lunamura$label.get();
++      label = label == null ? "/" + p_242841_ : label;
++      String finalLabel = label;
++      // Lunamura end
+       CommandSourceStack commandsourcestack = p_242844_.getContext().getSource();
+       commandsourcestack.m_81377_().m_129905_().m_6521_(() -> {
+          return "/" + p_242841_;
+@@ -243,29 +_,53 @@
+ 
+       try {
+          try {
+-            return this.f_82090_.execute(p_242844_);
++            net.minecraftforge.event.CommandEvent event = new net.minecraftforge.event.CommandEvent(p_242844_);
++            if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event)) {
++               if (event.getException() instanceof Exception exception) {
++                  throw exception;
++               } else if (event.getException() != null) {
++                  com.google.common.base.Throwables.throwIfUnchecked(event.getException());
++               }
++               return 1;
++            }
++            return this.f_82090_.execute(event.getParseResults());
+          } catch (CommandRuntimeException commandruntimeexception) {
+             commandsourcestack.m_81352_(commandruntimeexception.m_79226_());
+             return 0;
+          } catch (CommandSyntaxException commandsyntaxexception) {
+-            commandsourcestack.m_81352_(ComponentUtils.m_130729_(commandsyntaxexception.getRawMessage()));
+-            if (commandsyntaxexception.getInput() != null && commandsyntaxexception.getCursor() >= 0) {
+-               int j = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
+-               MutableComponent mutablecomponent1 = Component.m_237119_().m_130940_(ChatFormatting.GRAY).m_130938_((p_82134_) -> {
+-                  return p_82134_.m_131142_(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + p_242841_));
+-               });
+-               if (j > 10) {
+-                  mutablecomponent1.m_7220_(CommonComponents.f_238772_);
+-               }
+-
+-               mutablecomponent1.m_130946_(commandsyntaxexception.getInput().substring(Math.max(0, j - 10), j));
+-               if (j < commandsyntaxexception.getInput().length()) {
+-                  Component component = Component.m_237113_(commandsyntaxexception.getInput().substring(j)).m_130944_(ChatFormatting.RED, ChatFormatting.UNDERLINE);
+-                  mutablecomponent1.m_7220_(component);
+-               }
+-
+-               mutablecomponent1.m_7220_(Component.m_237115_("command.context.here").m_130944_(ChatFormatting.RED, ChatFormatting.ITALIC));
+-               commandsourcestack.m_81352_(mutablecomponent1);
++            // Paper start
++            final net.kyori.adventure.text.TextComponent.Builder builder = net.kyori.adventure.text.Component.text();
++            if ((p_242844_.getContext().getNodes().isEmpty())) {
++               if (!org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty()) {
++                  builder.append(LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.unknownCommandMessage));
++               }
++            } else {
++               builder.color(net.kyori.adventure.text.format.NamedTextColor.RED).append(LegacyComponentSerializer.legacySection().deserialize(CraftChatMessage.fromComponent(ComponentUtils.m_130729_(commandsyntaxexception.getRawMessage()))));
++               // Paper end
++               if (commandsyntaxexception.getInput() != null && commandsyntaxexception.getCursor() >= 0) {
++                  int j = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
++                  MutableComponent mutablecomponent1 = Component.m_237119_().m_130940_(ChatFormatting.GRAY).m_130938_((p_82134_) -> {
++                     return p_82134_.m_131142_(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, finalLabel));
++                  });
++                  if (j > 10) {
++                     mutablecomponent1.m_7220_(CommonComponents.f_238772_);
++                  }
++
++                  mutablecomponent1.m_130946_(commandsyntaxexception.getInput().substring(Math.max(0, j - 10), j));
++                  if (j < commandsyntaxexception.getInput().length()) {
++                     Component component = Component.m_237113_(commandsyntaxexception.getInput().substring(j)).m_130944_(ChatFormatting.RED, ChatFormatting.UNDERLINE);
++                     mutablecomponent1.m_7220_(component);
++                  }
++
++                  mutablecomponent1.m_7220_(Component.m_237115_("command.context.here").m_130944_(ChatFormatting.RED, ChatFormatting.ITALIC));
++                  builder.append(net.kyori.adventure.text.Component.newline()).append(LegacyComponentSerializer.legacySection().deserialize(CraftChatMessage.fromComponent(mutablecomponent1)));
++               }
++            }
++            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(commandsourcestack.getBukkitSender(), p_242841_, org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty() ? null : builder.build());
++            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(event);
++            if (event.message() != null) {
++               commandsourcestack.sendFailure(PaperAdventure.asVanilla(event.message()), false);
++               // Paper end
+             }
+          } catch (Exception exception) {
+             MutableComponent mutablecomponent = Component.m_237113_(exception.getMessage() == null ? exception.getClass().getName() : exception.getMessage());
+@@ -286,6 +_,7 @@
+                f_82089_.error("'/{}' threw an exception", p_242841_, exception);
+             }
+ 
++
+             return 0;
+          }
+ 
+@@ -295,17 +_,68 @@
+       }
+    }
+ 
++   public int performCommand(ParseResults<CommandSourceStack> pParseResults, String pCommand, String label) { // CraftBukkit
++      lunamura$label.set(label);
++      return this.m_242674_(pParseResults, pCommand);
++   }
++
+    public void m_82095_(ServerPlayer p_82096_) {
+-      Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newHashMap();
++      if ( org.spigotmc.SpigotConfig.tabComplete < 0 ) {
++         p_82096_.f_8906_.m_9829_(new ClientboundCommandsPacket(new RootCommandNode<>()));
++         return; // Spigot
++      }
++      // CraftBukkit start
++      // Register Vanilla commands into builtRoot as before
++      Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newIdentityHashMap(); // Use identity to prevent aliasing issues
++      RootCommandNode vanillaRoot = new RootCommandNode();
++
++      RootCommandNode<CommandSourceStack> vanilla = p_82096_.f_8924_.vanillaCommandDispatcher.m_82094_().getRoot();
++      map.put(vanilla, vanillaRoot);
++      this.m_82112_(vanilla, vanillaRoot, p_82096_.m_20203_(), (Map) map);
++
++      // Now build the global commands in a second pass
+       RootCommandNode<SharedSuggestionProvider> rootcommandnode = new RootCommandNode<>();
++
+       map.put(this.f_82090_.getRoot(), rootcommandnode);
+-      this.m_82112_(this.f_82090_.getRoot(), rootcommandnode, p_82096_.m_20203_(), map);
++      // FORGE: Use our own command node merging method to handle redirect nodes properly, see issue #7551
++      net.minecraftforge.server.command.CommandHelper.mergeCommandNode(this.f_82090_.getRoot(), rootcommandnode, map, p_82096_.m_20203_(), ctx -> 0, suggest -> SuggestionProviders.m_121664_((com.mojang.brigadier.suggestion.SuggestionProvider<SharedSuggestionProvider>) (com.mojang.brigadier.suggestion.SuggestionProvider<?>) suggest));
++
++      Collection<String> bukkit = new LinkedHashSet<>();
++      for (CommandNode node : rootcommandnode.getChildren()) {
++         bukkit.add(node.getName());
++      }
++
++      PlayerCommandSendEvent event = new PlayerCommandSendEvent(p_82096_.getBukkitEntity(), new LinkedHashSet<>(bukkit));
++      event.getPlayer().getServer().getPluginManager().callEvent(event);
++
++      // Remove labels that were removed during the event
++      for (String orig : bukkit) {
++         if (!event.getCommands().contains(orig)) {
++            rootcommandnode.removeCommand(orig);
++         }
++      }
++      // CraftBukkit end
++
+       p_82096_.f_8906_.m_9829_(new ClientboundCommandsPacket(rootcommandnode));
+    }
+ 
++   public static <S> boolean canUse(CommandNode<S> node, S source) {
++      if (source instanceof CommandSourceStack s) {
++         try {
++            s.currentCommand = node;
++            return node.canUse(source);
++         } finally {
++            s.currentCommand = null;
++         }
++      } else {
++         return node.canUse(source);
++      }
++   }
++
+    private void m_82112_(CommandNode<CommandSourceStack> p_82113_, CommandNode<SharedSuggestionProvider> p_82114_, CommandSourceStack p_82115_, Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> p_82116_) {
+       for(CommandNode<CommandSourceStack> commandnode : p_82113_.getChildren()) {
+-         if (commandnode.canUse(p_82115_)) {
++         if (!org.spigotmc.SpigotConfig.sendNamespaced && commandnode.getName().contains( ":" ) ) continue; // Spigot
++         if (canUse(commandnode, p_82115_)) {
+             ArgumentBuilder<SharedSuggestionProvider, ?> argumentbuilder = (ArgumentBuilder)commandnode.createBuilder();
+             argumentbuilder.requires((p_82126_) -> {
+                return true;

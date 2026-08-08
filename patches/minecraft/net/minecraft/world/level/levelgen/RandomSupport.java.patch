@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/levelgen/RandomSupport.java
++++ b/net/minecraft/world/level/levelgen/RandomSupport.java
+@@ -43,6 +_,14 @@
+       }) ^ System.nanoTime();
+    }
+ 
++   // Lunamura start - Faster Natural Spawning (ported from Leaf): cheaper seed source
++   public static long lunamuraGenerateFasterSeed() {
++      return f_189325_.updateAndGet((p_lunamura_) -> {
++         return p_lunamura_ * 1181783497276652981L;
++      }) ^ java.util.concurrent.ThreadLocalRandom.current().nextLong();
++   }
++   // Lunamura end
++
+    public static record Seed128bit(long f_189335_, long f_189336_) {
+       public RandomSupport.Seed128bit m_288194_(long p_288963_, long p_288992_) {
+          return new RandomSupport.Seed128bit(this.f_189335_ ^ p_288963_, this.f_189336_ ^ p_288992_);

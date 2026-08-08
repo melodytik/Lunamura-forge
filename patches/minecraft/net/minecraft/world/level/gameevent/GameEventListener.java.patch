@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/level/gameevent/GameEventListener.java
++++ b/net/minecraft/world/level/gameevent/GameEventListener.java
+@@ -14,6 +_,12 @@
+       return GameEventListener.DeliveryMode.UNSPECIFIED;
+    }
+ 
++   // Lunamura start - Petal: allow listeners to declare which events they care about, avoids expensive dispatch
++   default boolean lunamuraListensToEvent(GameEvent gameEvent, GameEvent.Context context) {
++      return true;
++   }
++   // Lunamura end
++
+    public static enum DeliveryMode {
+       UNSPECIFIED,
+       BY_DISTANCE;

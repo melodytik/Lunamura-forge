@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/entity/ai/attributes/AttributeMap.java
++++ b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
+@@ -145,9 +_,16 @@
+             }
+ 
+          }, () -> {
+-            f_22138_.warn("Ignoring unknown attribute '{}'", (Object)s);
++            if (false) f_22138_.warn("Ignoring unknown attribute '{}'", (Object)s);
+          });
+       }
+ 
+    }
++
++   // Paper - start
++   public void registerAttribute(Attribute attributeBase) {
++      AttributeInstance attributeModifiable = new AttributeInstance(attributeBase, AttributeInstance::m_22099_);
++      f_22139_.put(attributeBase, attributeModifiable);
++   }
++   // Paper - end
+ }

@@ -1,0 +1,120 @@
+--- a/net/minecraft/world/entity/monster/Creeper.java
++++ b/net/minecraft/world/entity/monster/Creeper.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.world.entity.monster;
+ 
++import com.mohistmc.paper.event.entity.CreeperIgniteEvent;
+ import java.util.Collection;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import javax.annotation.Nullable;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+@@ -40,6 +_,9 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.gameevent.GameEvent;
++import org.bukkit.craftbukkit.v1_20_R1.event.CraftEventFactory;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.entity.ExplosionPrimeEvent;
+ 
+ public class Creeper extends Monster implements PowerableMob {
+    private static final EntityDataAccessor<Integer> f_32268_ = SynchedEntityData.m_135353_(Creeper.class, EntityDataSerializers.f_135028_);
+@@ -116,7 +_,7 @@
+       }
+ 
+       if (p_32296_.m_128471_("ignited")) {
+-         this.m_32312_();
++         this.f_19804_.m_135381_(f_32275_, true); // Paper api - set directly to avoid firing event
+       }
+ 
+    }
+@@ -196,9 +_,19 @@
+ 
+    public void m_8038_(ServerLevel p_32286_, LightningBolt p_32287_) {
+       super.m_8038_(p_32286_, p_32287_);
++      // CraftBukkit start
++      if (CraftEventFactory.callCreeperPowerEvent(this, p_32287_, org.bukkit.event.entity.CreeperPowerEvent.PowerCause.LIGHTNING).isCancelled()) {
++         return;
++      }
++
+       this.f_19804_.m_135381_(f_32274_, true);
+    }
+ 
++   public void setPowered(boolean powered) {
++      this.f_19804_.m_135381_(f_32274_, powered);
++   }
++   // CraftBukkit end
++
+    protected InteractionResult m_6071_(Player p_32301_, InteractionHand p_32302_) {
+       ItemStack itemstack = p_32301_.m_21120_(p_32302_);
+       if (itemstack.m_204117_(ItemTags.f_262757_)) {
+@@ -221,13 +_,21 @@
+       }
+    }
+ 
+-   private void m_32315_() {
++   public void m_32315_() {
+       if (!this.m_9236_().f_46443_) {
+          float f = this.m_7090_() ? 2.0F : 1.0F;
+-         this.f_20890_ = true;
+-         this.m_9236_().m_254849_(this, this.m_20185_(), this.m_20186_(), this.m_20189_(), (float)this.f_32272_ * f, Level.ExplosionInteraction.MOB);
+-         this.m_146870_();
+-         this.m_32316_();
++         // CraftBukkit start
++         ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, this.f_32272_ * f, false);
++         if (!event.isCancelled()) {
++            this.f_20890_ = true;
++            this.m_9236_().lunamura$pFire(event.getFire());
++            this.m_9236_().m_254849_(this, this.m_20185_(), this.m_20186_(), this.m_20189_(), event.getRadius(), Level.ExplosionInteraction.MOB);
++            this.m_146870_();
++            this.m_32316_();
++         } else {
++            f_32270_ = 0;
++         }
++         // CraftBukkit end
+       }
+ 
+    }
+@@ -236,6 +_,7 @@
+       Collection<MobEffectInstance> collection = this.m_21220_();
+       if (!collection.isEmpty()) {
+          AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.m_9236_(), this.m_20185_(), this.m_20186_(), this.m_20189_());
++         areaeffectcloud.m_19718_(this); // CraftBukkit
+          areaeffectcloud.m_19712_(2.5F);
+          areaeffectcloud.m_19732_(-0.5F);
+          areaeffectcloud.m_19740_(10);
+@@ -245,7 +_,7 @@
+          for(MobEffectInstance mobeffectinstance : collection) {
+             areaeffectcloud.m_19716_(new MobEffectInstance(mobeffectinstance));
+          }
+-
++         areaeffectcloud.spawnReason(CreatureSpawnEvent.SpawnReason.EXPLOSION); // CraftBukkit
+          this.m_9236_().m_7967_(areaeffectcloud);
+       }
+ 
+@@ -255,9 +_,23 @@
+       return this.f_19804_.m_135370_(f_32275_);
+    }
+ 
++   // Lunamura start - paper api
++   public AtomicBoolean ignited = new AtomicBoolean(true);
+    public void m_32312_() {
+-      this.f_19804_.m_135381_(f_32275_, true);
+-   }
++      boolean i = ignited.getAndSet(true);
++      if (m_32311_() != i) {
++         CreeperIgniteEvent event = new CreeperIgniteEvent((org.bukkit.entity.Creeper) getBukkitEntity(), i);
++         if (event.callEvent()) {
++            this.f_19804_.m_135381_(f_32275_, event.isIgnited());
++         }
++      }
++   }
++
++   public void setIgnited(boolean ignited) {
++      this.ignited.set(ignited);
++      m_32312_();
++   }
++   // Lunamura end
+ 
+    public boolean m_32313_() {
+       return this.m_7090_() && this.f_32273_ < 1;

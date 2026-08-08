@@ -1,0 +1,76 @@
+--- a/net/minecraft/world/item/LeadItem.java
++++ b/net/minecraft/world/item/LeadItem.java
+@@ -11,6 +_,11 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.AABB;
++import org.bukkit.craftbukkit.v1_20_R1.CraftEquipmentSlot;
++import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
++import org.bukkit.event.hanging.HangingPlaceEvent;
++
++import java.util.concurrent.atomic.AtomicReference;
+ 
+ public class LeadItem extends Item {
+    public LeadItem(Item.Properties p_42828_) {
+@@ -24,7 +_,8 @@
+       if (blockstate.m_204336_(BlockTags.f_13039_)) {
+          Player player = p_42834_.m_43723_();
+          if (!level.f_46443_ && player != null) {
+-            m_42829_(player, level, blockpos);
++             enumHand.set(p_42834_.m_43724_());  // CraftBukkit - Pass hand
++             m_42829_(player, level, blockpos);
+          }
+ 
+          return InteractionResult.m_19078_(level.f_46443_);
+@@ -33,6 +_,7 @@
+       }
+    }
+ 
++   public static AtomicReference<net.minecraft.world.InteractionHand> enumHand = new AtomicReference<>(net.minecraft.world.InteractionHand.MAIN_HAND);
+    public static InteractionResult m_42829_(Player p_42830_, Level p_42831_, BlockPos p_42832_) {
+       LeashFenceKnotEntity leashfenceknotentity = null;
+       boolean flag = false;
+@@ -40,14 +_,31 @@
+       int i = p_42832_.m_123341_();
+       int j = p_42832_.m_123342_();
+       int k = p_42832_.m_123343_();
++      net.minecraft.world.InteractionHand interactionHand = enumHand.getAndSet(net.minecraft.world.InteractionHand.MAIN_HAND);
+ 
+       for(Mob mob : p_42831_.m_45976_(Mob.class, new AABB((double)i - 7.0D, (double)j - 7.0D, (double)k - 7.0D, (double)i + 7.0D, (double)j + 7.0D, (double)k + 7.0D))) {
+          if (mob.m_21524_() == p_42830_) {
+             if (leashfenceknotentity == null) {
+                leashfenceknotentity = LeashFenceKnotEntity.m_31844_(p_42831_, p_42832_);
++
++               // CraftBukkit start - fire HangingPlaceEvent
++               HangingPlaceEvent event = new HangingPlaceEvent((org.bukkit.entity.Hanging) leashfenceknotentity.getBukkitEntity(), p_42830_ != null ? (org.bukkit.entity.Player) p_42830_.getBukkitEntity() : null, CraftBlock.at(p_42831_, p_42832_), org.bukkit.block.BlockFace.SELF, CraftEquipmentSlot.getHand(interactionHand));
++               p_42831_.getCraftServer().getPluginManager().callEvent(event);
++
++               if (event.isCancelled()) {
++                  leashfenceknotentity.m_146870_();
++                  return InteractionResult.PASS;
++               }
++               // CraftBukkit end
+                leashfenceknotentity.m_7084_();
+             }
+ 
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.v1_20_R1.event.CraftEventFactory.callPlayerLeashEntityEvent(mob, leashfenceknotentity, p_42830_, interactionHand).isCancelled()) {
++               continue;
++            }
++            // CraftBukkit end
++
+             mob.m_21463_(leashfenceknotentity, true);
+             flag = true;
+          }
+@@ -59,4 +_,11 @@
+ 
+       return flag ? InteractionResult.SUCCESS : InteractionResult.PASS;
+    }
++
++   // CraftBukkit start
++   public static InteractionResult bindPlayerMobs(Player pPlayer, Level pLevel, BlockPos pPos, net.minecraft.world.InteractionHand enumhand) {
++      enumHand.set(enumhand);
++      return m_42829_(pPlayer, pLevel, pPos);
++   }
++   // CraftBukkit end
+ }

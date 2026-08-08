@@ -1,0 +1,32 @@
+--- a/net/minecraft/world/level/storage/loot/LootDataManager.java
++++ b/net/minecraft/world/level/storage/loot/LootDataManager.java
+@@ -53,7 +_,7 @@
+          Map<ResourceLocation, JsonElement> map1 = new HashMap<>();
+          SimpleJsonResourceReloadListener.m_278771_(p_279441_, p_279205_.m_278624_(), p_279205_.m_278857_(), map1);
+          map1.forEach((p_279416_, p_279151_) -> {
+-            p_279205_.m_278763_(p_279416_, p_279151_).ifPresent((p_279295_) -> {
++            p_279205_.deserialize(p_279416_, p_279151_, p_279441_).ifPresent((p_279295_) -> {
+                map.put(p_279416_, p_279295_);
+             });
+          });
+@@ -86,10 +_,19 @@
+          m_278621_(validationcontext, p_279387_, p_279087_);
+       });
+       validationcontext.m_79352_().forEach((p_279487_, p_279312_) -> {
+-         f_278476_.warn("Found loot table element validation problem in {}: {}", p_279487_, p_279312_);
++         if (false) f_278476_.warn("Found loot table element validation problem in {}: {}", p_279487_, p_279312_);
+       });
+       this.f_278415_ = map;
+       this.f_278404_ = builder1.build();
++      // CraftBukkit start - build a reversed registry map
++      // Lunamura start
++      this.f_278415_.forEach((key, lootTable) -> {
++         if (object instanceof LootTable table) {
++            table.craftLootTable = key.f_278500_();
++         }
++      });
++      // Lunamura end
++      // CraftBukkit end
+    }
+ 
+    private static <T> void m_278621_(ValidationContext p_279270_, LootDataId<T> p_279249_, Object p_279342_) {

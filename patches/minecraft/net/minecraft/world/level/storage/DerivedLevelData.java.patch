@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/level/storage/DerivedLevelData.java
++++ b/net/minecraft/world/level/storage/DerivedLevelData.java
+@@ -3,18 +_,26 @@
+ import java.util.UUID;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.core.BlockPos;
++import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.border.WorldBorder;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.timers.TimerQueue;
+ 
+ public class DerivedLevelData implements ServerLevelData {
+    private final WorldData f_78076_;
+    public final ServerLevelData f_78077_;
+ 
++   private ResourceKey<LevelStem> typeKey;
++
++   public void setTypeKey(ResourceKey<LevelStem> typeKey) {
++      this.typeKey = typeKey;
++   }
++
+    public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
+       this.f_78076_ = p_78079_;
+       this.f_78077_ = p_78080_;
+@@ -45,7 +_,20 @@
+    }
+ 
+    public String m_5462_() {
+-      return this.f_78076_.m_5462_();
++      if (typeKey == null || typeKey == LevelStem.f_63971_) {
++         return this.f_78077_.m_5462_();
++      } else {
++         String worldName = this.f_78077_.m_5462_() + "/";
++         String suffix;
++         if (typeKey == LevelStem.f_63973_) {
++            suffix = "DIM1";
++         } else if (typeKey == LevelStem.f_63972_) {
++            suffix = "DIM-1";
++         } else {
++            suffix = typeKey.m_135782_().m_135827_() + "/" + typeKey.m_135782_().m_135815_();
++         }
++         return worldName + suffix;
++      }
+    }
+ 
+    public int m_6537_() {

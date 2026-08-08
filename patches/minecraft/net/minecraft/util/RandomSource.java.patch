@@ -1,0 +1,15 @@
+--- a/net/minecraft/util/RandomSource.java
++++ b/net/minecraft/util/RandomSource.java
+@@ -15,6 +_,12 @@
+    static RandomSource m_216327_() {
+       return m_216335_(RandomSupport.m_224599_());
+    }
++
++   // Lunamura start - Faster Natural Spawning (ported from Leaf)
++   static RandomSource lunamuraCreateFaster() {
++      return m_216335_(RandomSupport.lunamuraGenerateFasterSeed());
++   }
++   // Lunamura end
+ 
+    /** @deprecated */
+    @Deprecated

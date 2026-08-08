@@ -1,0 +1,17 @@
+--- a/net/minecraft/network/protocol/game/ServerboundInteractPacket.java
++++ b/net/minecraft/network/protocol/game/ServerboundInteractPacket.java
+@@ -158,4 +_,14 @@
+          p_179665_.m_130068_(this.f_179656_);
+       }
+    }
++
++   // Paper start - PlayerUseUnknownEntityEvent
++   public int getEntityId() {
++      return this.f_134030_;
++   }
++
++   public boolean isAttack() {
++      return this.f_134031_.m_142249_() == ActionType.ATTACK;
++   }
++   // Paper end - PlayerUseUnknownEntityEvent
+ }

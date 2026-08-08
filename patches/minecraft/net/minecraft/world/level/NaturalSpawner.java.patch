@@ -1,0 +1,162 @@
+--- a/net/minecraft/world/level/NaturalSpawner.java
++++ b/net/minecraft/world/level/NaturalSpawner.java
+@@ -42,12 +_,16 @@
+ import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+-import net.minecraft.world.level.levelgen.structure.structures.NetherFortressStructure;
+ import net.minecraft.world.level.material.FluidState;
+ import net.minecraft.world.level.pathfinder.PathComputationType;
++import net.minecraft.world.level.storage.LevelData;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_20_R1.util.CraftSpawnCategory;
++import org.bukkit.entity.SpawnCategory;
++import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.slf4j.Logger;
+ 
++// TODO: ForgeHooks.canEntitySpawn
+ public final class NaturalSpawner {
+    private static final Logger f_46977_ = LogUtils.getLogger();
+    private static final int f_151589_ = 24;
+@@ -68,13 +_,14 @@
+       Object2IntOpenHashMap<MobCategory> object2intopenhashmap = new Object2IntOpenHashMap<>();
+ 
+       for(Entity entity : p_186526_) {
++         if (entity == null) continue; // Lunamura why is null? TODO
+          if (entity instanceof Mob mob) {
+             if (mob.m_21532_() || mob.m_8023_()) {
+                continue;
+             }
+          }
+ 
+-         MobCategory mobcategory = entity.m_6095_().m_20674_();
++         MobCategory mobcategory = entity.getClassification(true);
+          if (mobcategory != MobCategory.MISC) {
+             BlockPos blockpos = entity.m_20183_();
+             p_186527_.m_47103_(ChunkPos.m_151388_(blockpos), (p_275163_) -> {
+@@ -102,8 +_,21 @@
+    public static void m_47029_(ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, boolean p_47033_, boolean p_47034_, boolean p_47035_) {
+       p_47030_.m_46473_().m_6180_("spawner");
+ 
++      LevelData worlddata = p_47030_.m_6106_(); // CraftBukkit - Other mob type spawn tick rate
++
+       for(MobCategory mobcategory : f_46979_) {
+-         if ((p_47033_ || !mobcategory.m_21609_()) && (p_47034_ || mobcategory.m_21609_()) && (p_47035_ || !mobcategory.m_21610_()) && p_47032_.m_186548_(mobcategory, p_47031_.m_7697_())) {
++         // CraftBukkit start - Use per-world spawn limits
++         boolean spawnThisTick = true;
++         int limit = mobcategory.m_21608_();
++         SpawnCategory spawnCategory = CraftSpawnCategory.toBukkit(mobcategory);
++         if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
++            spawnThisTick = p_47030_.ticksPerSpawnCategory.getLong(spawnCategory) != 0 && worlddata.m_6793_() % p_47030_.ticksPerSpawnCategory.getLong(spawnCategory) == 0;
++            limit = p_47030_.getWorld().getSpawnLimit(spawnCategory);
++         }
++         if (!spawnThisTick || limit == 0) {
++            continue;
++         }
++         if ((p_47033_ || !mobcategory.m_21609_()) && (p_47034_ || mobcategory.m_21609_()) && (p_47035_ || !mobcategory.m_21610_()) && p_47032_.canSpawnForCategory(mobcategory, p_47031_.m_7697_(), limit)) {
+             m_47045_(mobcategory, p_47030_, p_47031_, p_47032_::m_47127_, p_47032_::m_47131_);
+          }
+       }
+@@ -175,9 +_,10 @@
+                            spawngroupdata = mob.m_6518_(p_47040_, p_47040_.m_6436_(mob.m_20183_()), MobSpawnType.NATURAL, spawngroupdata, (CompoundTag)null);
+                            ++j;
+                            ++l1;
++                           mob.spawnReason(CreatureSpawnEvent.SpawnReason.NATURAL);
+                            p_47040_.m_47205_(mob);
+                            p_47044_.m_47100_(mob, p_47041_);
+-                           if (j >= mob.m_5792_()) {
++                           if (j >= net.minecraftforge.event.ForgeEventFactory.getMaxSpawnPackSize(mob)) {
+                               return;
+                            }
+ 
+@@ -244,7 +_,7 @@
+       if (p_46994_ > (double)(p_46993_.m_6095_().m_20674_().m_21611_() * p_46993_.m_6095_().m_20674_().m_21611_()) && p_46993_.m_6785_(p_46994_)) {
+          return false;
+       } else {
+-         return p_46993_.m_5545_(p_46992_, MobSpawnType.NATURAL) && p_46993_.m_6914_(p_46992_);
++         return net.minecraftforge.event.ForgeEventFactory.checkSpawnPosition(p_46993_, p_46992_, MobSpawnType.NATURAL);
+       }
+    }
+ 
+@@ -258,7 +_,8 @@
+    }
+ 
+    private static WeightedRandomList<MobSpawnSettings.SpawnerData> m_220443_(ServerLevel p_220444_, StructureManager p_220445_, ChunkGenerator p_220446_, MobCategory p_220447_, BlockPos p_220448_, @Nullable Holder<Biome> p_220449_) {
+-      return m_220455_(p_220448_, p_220444_, p_220447_, p_220445_) ? NetherFortressStructure.f_228517_ : p_220446_.m_223133_(p_220449_ != null ? p_220449_ : p_220444_.m_204166_(p_220448_), p_220445_, p_220447_, p_220448_);
++      // Forge: Add in potential spawns, and replace hardcoded nether fortress mob list
++      return net.minecraftforge.event.ForgeEventFactory.getPotentialSpawns(p_220444_, p_220447_, p_220448_, m_220455_(p_220448_, p_220444_, p_220447_, p_220445_) ? p_220445_.m_220521_().m_175515_(Registries.f_256944_).m_123013_(BuiltinStructures.f_209859_).m_226612_().get(MobCategory.MONSTER).f_210044_() : p_220446_.m_223133_(p_220449_ != null ? p_220449_ : p_220444_.m_204166_(p_220448_), p_220445_, p_220447_, p_220448_));
+    }
+ 
+    public static boolean m_220455_(BlockPos p_220456_, ServerLevel p_220457_, MobCategory p_220458_, StructureManager p_220459_) {
+@@ -272,6 +_,16 @@
+ 
+    private static BlockPos m_47062_(Level p_47063_, LevelChunk p_47064_) {
+       ChunkPos chunkpos = p_47064_.m_7697_();
++      // Lunamura start - Faster Natural Spawning (ported from Leaf)
++      if (com.mohistmc.LunamuraConfig.perf_natural_spawn_fast) {
++         net.minecraft.util.RandomSource lunamurarng = p_47063_.lunamuraRandomFaster;
++         int lunamurax = chunkpos.m_45604_() + lunamurarng.m_188503_(16);
++         int lunamuraz = chunkpos.m_45605_() + lunamurarng.m_188503_(16);
++         int lunamuratop = p_47064_.m_5885_(Heightmap.Types.WORLD_SURFACE, lunamurax, lunamuraz) + 1;
++         int lunamuray = Mth.m_216287_(lunamurarng, p_47063_.m_141937_(), lunamuratop);
++         return new BlockPos(lunamurax, lunamuray, lunamuraz);
++      }
++      // Lunamura end
+       int i = chunkpos.m_45604_() + p_47063_.f_46441_.m_188503_(16);
+       int j = chunkpos.m_45605_() + p_47063_.f_46441_.m_188503_(16);
+       int k = p_47064_.m_5885_(Heightmap.Types.WORLD_SURFACE, i, j) + 1;
+@@ -297,6 +_,13 @@
+       if (p_47052_ == SpawnPlacements.Type.NO_RESTRICTIONS) {
+          return true;
+       } else if (p_47055_ != null && p_47053_.m_6857_().m_61937_(p_47054_)) {
++         return p_47052_.canSpawnAt(p_47053_, p_47054_, p_47055_);
++      }
++      return false;
++   }
++
++   public static boolean canSpawnAtBody(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {
++      {
+          BlockState blockstate = p_47053_.m_8055_(p_47054_);
+          FluidState fluidstate = p_47053_.m_6425_(p_47054_);
+          BlockPos blockpos = p_47054_.m_7494_();
+@@ -309,14 +_,12 @@
+             case ON_GROUND:
+             default:
+                BlockState blockstate1 = p_47053_.m_8055_(blockpos1);
+-               if (!blockstate1.m_60643_(p_47053_, blockpos1, p_47055_)) {
++            if (!blockstate1.isValidSpawn(p_47053_, blockpos1, p_47052_, p_47055_)) {
+                   return false;
+                } else {
+                   return m_47056_(p_47053_, p_47054_, blockstate, fluidstate, p_47055_) && m_47056_(p_47053_, blockpos, p_47053_.m_8055_(blockpos), p_47053_.m_6425_(blockpos), p_47055_);
+                }
+          }
+-      } else {
+-         return false;
+       }
+    }
+ 
+@@ -366,7 +_,7 @@
+                         entity.m_7678_(d0, (double)blockpos.m_123342_(), d1, p_220454_.m_188501_() * 360.0F, 0.0F);
+                         if (entity instanceof Mob) {
+                            Mob mob = (Mob)entity;
+-                           if (mob.m_5545_(p_220451_, MobSpawnType.CHUNK_GENERATION) && mob.m_6914_(p_220451_)) {
++                           if (net.minecraftforge.event.ForgeEventFactory.checkSpawnPosition(mob, p_220451_, MobSpawnType.CHUNK_GENERATION)) {
+                               spawngroupdata = mob.m_6518_(p_220451_, p_220451_.m_6436_(mob.m_20183_()), MobSpawnType.CHUNK_GENERATION, spawngroupdata, (CompoundTag)null);
+                               p_220451_.m_47205_(mob);
+                               flag = true;
+@@ -495,6 +_,15 @@
+             return false;
+          } else {
+             return this.f_186542_.m_186504_(p_186549_, p_186550_);
++         }
++      }
++
++      boolean canSpawnForCategory(MobCategory pCategory, ChunkPos pPos, int limit) {
++         int i = limit * this.f_47110_ / NaturalSpawner.f_46978_;
++         if (this.f_47111_.getInt(pCategory) >= i) {
++            return false;
++         } else {
++            return this.f_186542_.m_186504_(pCategory, pPos);
+          }
+       }
+    }

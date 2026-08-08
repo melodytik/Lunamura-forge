@@ -1,0 +1,141 @@
+--- a/net/minecraft/network/Connection.java
++++ b/net/minecraft/network/Connection.java
+@@ -86,6 +_,14 @@
+    private boolean f_129479_;
+    @Nullable
+    private volatile Component f_290021_;
++   private java.util.function.Consumer<Connection> activationHandler;
++   public String hostname = ""; // CraftBukkit - add field
++   // Spigot Start
++   public java.util.UUID spoofedUUID;
++   public com.mojang.authlib.properties.Property[] spoofedProfile;
++   public boolean preparing = true;
++   // Spigot End
++   private volatile boolean lunamura$isClosing; //lunamura
+ 
+    public Connection(PacketFlow p_129482_) {
+       this.f_129466_ = p_129482_;
+@@ -95,7 +_,10 @@
+       super.channelActive(p_129525_);
+       this.f_129468_ = p_129525_.channel();
+       this.f_129469_ = this.f_129468_.remoteAddress();
+-
++      if (activationHandler != null) activationHandler.accept(this);
++      // Spigot Start
++      this.preparing = false;
++      // Spigot End
+       try {
+          this.m_129498_(ConnectionProtocol.HANDSHAKING);
+       } catch (Throwable throwable) {
+@@ -111,8 +_,10 @@
+    public void m_129498_(ConnectionProtocol p_129499_) {
+       this.f_129468_.attr(f_129461_).set(p_129499_);
+       this.f_129468_.attr(BundlerInfo.f_263730_).set(p_129499_);
++      this.f_129468_.eventLoop().execute(()-> {
+       this.f_129468_.config().setAutoRead(true);
+       f_129465_.debug("Enabled auto read");
++      });
+    }
+ 
+    public void channelInactive(ChannelHandlerContext p_129527_) {
+@@ -125,7 +_,7 @@
+       } else {
+          boolean flag = !this.f_129479_;
+          this.f_129479_ = true;
+-         if (this.f_129468_.isOpen()) {
++         if (this.f_129468_.isOpen() && !this.lunamura$isClosing) {
+             if (p_129534_ instanceof TimeoutException) {
+                f_129465_.debug("Timeout", p_129534_);
+                this.m_129507_(Component.m_237115_("disconnect.timeout"));
+@@ -150,7 +_,7 @@
+    }
+ 
+    protected void channelRead0(ChannelHandlerContext p_129487_, Packet<?> p_129488_) {
+-      if (this.f_129468_.isOpen()) {
++      if (this.f_129468_.isOpen() && !this.lunamura$isClosing) {
+          try {
+             m_129517_(p_129488_, this.f_129470_);
+          } catch (RunningOnDifferentThreadException runningondifferentthreadexception) {
+@@ -241,7 +_,7 @@
+    }
+ 
+    private void m_129544_() {
+-      if (this.f_129468_ != null && this.f_129468_.isOpen()) {
++      if (this.f_129468_ != null && this.f_129468_.isOpen() && !this.lunamura$isClosing) {
+          synchronized(this.f_129467_) {
+             Connection.PacketHolder connection$packetholder;
+             while((connection$packetholder = this.f_129467_.poll()) != null) {
+@@ -288,8 +_,11 @@
+       if (this.f_129468_ == null) {
+          this.f_290021_ = p_129508_;
+       }
+-
++      // Spigot Start
++      this.preparing = false;
++      // Spigot End
+       if (this.m_129536_()) {
++         this.lunamura$isClosing = true; // Lunamura fix vmp mixin
+          this.f_129468_.close().awaitUninterruptibly();
+          this.f_129471_ = p_129508_;
+       }
+@@ -316,6 +_,8 @@
+    }
+ 
+    public static ChannelFuture m_290025_(InetSocketAddress p_290034_, boolean p_290035_, final Connection p_290031_) {
++      net.minecraftforge.network.DualStackUtils.checkIPv6(p_290034_.getAddress());
++      p_290031_.activationHandler = net.minecraftforge.network.NetworkHooks::registerClientLoginChannel;
+       Class<? extends SocketChannel> oclass;
+       LazyLoadedValue<? extends EventLoopGroup> lazyloadedvalue;
+       if (Epoll.isAvailable() && p_290035_) {
+@@ -347,6 +_,7 @@
+ 
+    public static Connection m_129493_(SocketAddress p_129494_) {
+       final Connection connection = new Connection(PacketFlow.CLIENTBOUND);
++      connection.activationHandler = net.minecraftforge.network.NetworkHooks::registerClientLoginChannel;
+       (new Bootstrap()).group(f_129464_.m_13971_()).handler(new ChannelInitializer<Channel>() {
+          protected void initChannel(Channel p_129557_) {
+             ChannelPipeline channelpipeline = p_129557_.pipeline();
+@@ -367,7 +_,7 @@
+    }
+ 
+    public boolean m_129536_() {
+-      return this.f_129468_ != null && this.f_129468_.isOpen();
++      return this.f_129468_ != null && this.f_129468_.isOpen() && !this.lunamura$isClosing;
+    }
+ 
+    public boolean m_129537_() {
+@@ -426,6 +_,7 @@
+             } else if (this.m_129538_() != null) {
+                this.m_129538_().m_7026_(Component.m_237115_("multiplayer.disconnect.generic"));
+             }
++            this.f_129467_.clear(); // Free up packet queue.
+          }
+ 
+       }
+@@ -439,6 +_,14 @@
+       return this.f_129477_;
+    }
+ 
++   public Channel channel() {
++      return this.f_129468_;
++   }
++
++   public PacketFlow getDirection() {
++      return this.f_129466_;
++   }
++
+    static class PacketHolder {
+       final Packet<?> f_129558_;
+       @Nullable
+@@ -449,4 +_,11 @@
+          this.f_129559_ = p_243266_;
+       }
+    }
++
++   // Spigot Start
++   public SocketAddress getRawAddress()
++    {
++       return this.f_129468_.remoteAddress();
++    }
++    // Spigot End
+ }

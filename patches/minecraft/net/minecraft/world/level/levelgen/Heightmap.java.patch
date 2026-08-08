@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/levelgen/Heightmap.java
++++ b/net/minecraft/world/level/levelgen/Heightmap.java
+@@ -124,7 +_,7 @@
+       if (along.length == p_158367_.length) {
+          System.arraycopy(p_158367_, 0, along, 0, p_158367_.length);
+       } else {
+-         f_158363_.warn("Ignoring heightmap data for chunk " + p_158365_.m_7697_() + ", size does not match; expected: " + along.length + ", got: " + p_158367_.length);
++         if (false) f_158363_.warn("Ignoring heightmap data for chunk " + p_158365_.m_7697_() + ", size does not match; expected: " + along.length + ", got: " + p_158367_.length);
+          m_64256_(p_158365_, EnumSet.of(p_158366_));
+       }
+    }

@@ -1,0 +1,15 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.mohistmc'
+version = MC_VERSION
+
+repositories {
+    maven { url = 'https://maven.aliyun.com/repository/public' }
+    mavenCentral()
+}
+
+dependencies {
+    implementation(project(':mohist'))
+}

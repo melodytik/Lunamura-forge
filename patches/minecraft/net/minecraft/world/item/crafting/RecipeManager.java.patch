@@ -1,0 +1,214 @@
+--- a/net/minecraft/world/item/crafting/RecipeManager.java
++++ b/net/minecraft/world/item/crafting/RecipeManager.java
+@@ -8,11 +_,14 @@
+ import com.google.gson.JsonObject;
+ import com.google.gson.JsonParseException;
+ import com.google.gson.JsonSyntaxException;
++import com.mohistmc.LunamuraConfig;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
++import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.Comparator;
++import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+@@ -29,6 +_,7 @@
+ import net.minecraft.world.Container;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
++import net.minecraftforge.registries.ForgeRegistries;
+ import org.slf4j.Logger;
+ 
+ public class RecipeManager extends SimpleJsonResourceReloadListener {
+@@ -37,34 +_,61 @@
+    public Map<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> f_44007_ = ImmutableMap.of();
+    private Map<ResourceLocation, Recipe<?>> f_199900_ = ImmutableMap.of();
+    private boolean f_44008_;
++   private final net.minecraftforge.common.crafting.conditions.ICondition.IContext context; //Forge: add context
++   public Map<RecipeType<?>, Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>>> recipesCB = ImmutableMap.of(); // CraftBukkit  // Lunamura use obf name
+ 
++   /** @deprecated Forge: use {@linkplain RecipeManager#RecipeManager(net.minecraftforge.common.crafting.conditions.ICondition.IContext) constructor with context}. */
++   @Deprecated
+    public RecipeManager() {
++      this(net.minecraftforge.common.crafting.conditions.ICondition.IContext.EMPTY);
++   }
++
++   public RecipeManager(net.minecraftforge.common.crafting.conditions.ICondition.IContext context) {
+       super(f_44005_, "recipes");
++      this.context = context;
+    }
++
++   protected Map<RecipeType<?>, Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>>> map1 = Maps.newHashMap();
+ 
+    protected void m_5787_(Map<ResourceLocation, JsonElement> p_44037_, ResourceManager p_44038_, ProfilerFiller p_44039_) {
+       this.f_44008_ = false;
++
++      // CraftBukkit start - SPIGOT-5667 make sure all types are populated and mutable
++      for (RecipeType<?> recipeType : BuiltInRegistries.f_256990_) {
++         map1.put(recipeType, new Object2ObjectLinkedOpenHashMap<>());
++      }
++      // CraftBukkit end
+       Map<RecipeType<?>, ImmutableMap.Builder<ResourceLocation, Recipe<?>>> map = Maps.newHashMap();
+       ImmutableMap.Builder<ResourceLocation, Recipe<?>> builder = ImmutableMap.builder();
+ 
+       for(Map.Entry<ResourceLocation, JsonElement> entry : p_44037_.entrySet()) {
+          ResourceLocation resourcelocation = entry.getKey();
++         if (resourcelocation.m_135815_().startsWith("_")) continue; //Forge: filter anything beginning with "_" as it's used for metadata.
+ 
+          try {
+-            Recipe<?> recipe = m_44045_(resourcelocation, GsonHelper.m_13918_(entry.getValue(), "top element"));
+-            map.computeIfAbsent(recipe.m_6671_(), (p_44075_) -> {
+-               return ImmutableMap.builder();
+-            }).put(resourcelocation, recipe);
++            if (entry.getValue().isJsonObject() && !net.minecraftforge.common.crafting.CraftingHelper.processConditions(entry.getValue().getAsJsonObject(), "conditions", this.context)) {
++               continue;
++            }
++            Recipe<?> recipe = fromJson(resourcelocation, GsonHelper.m_13918_(entry.getValue(), "top element"), this.context);
++            if (recipe == null) {
++               continue;
++            }
++
++            ((ImmutableMap.Builder)map.computeIfAbsent(recipe.m_6671_(), (p_44075_) -> ImmutableMap.builder())).put(resourcelocation, recipe);
+             builder.put(resourcelocation, recipe);
++            // CraftBukkit start
++            map1.computeIfAbsent(recipe.m_6671_(), (recipes) -> {
++               return new Object2ObjectLinkedOpenHashMap<>();
++               // CraftBukkit end
++            }).putAndMoveToFirst(resourcelocation, recipe);
+          } catch (IllegalArgumentException | JsonParseException jsonparseexception) {
+             f_44006_.error("Parsing error loading recipe {}", resourcelocation, jsonparseexception);
+          }
+       }
+ 
+-      this.f_44007_ = map.entrySet().stream().collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, (p_44033_) -> {
+-         return p_44033_.getValue().build();
+-      }));
+-      this.f_199900_ = builder.build();
++      this.f_44007_ = (Map)map.entrySet().stream().collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, (p_44033_) -> ((ImmutableMap.Builder)p_44033_.getValue()).build()));
++      this.recipesCB = map1;
++      this.f_199900_ = Maps.newHashMap(builder.build());
+       f_44006_.info("Loaded {} recipes", (int)map.size());
+    }
+ 
+@@ -73,9 +_,11 @@
+    }
+ 
+    public <C extends Container, T extends Recipe<C>> Optional<T> m_44015_(RecipeType<T> p_44016_, C p_44017_, Level p_44018_) {
+-      return this.m_44054_(p_44016_).values().stream().filter((p_220266_) -> {
++      Optional<T> optional = this.m_44054_(p_44016_).values().stream().filter((p_220266_) -> {
+          return p_220266_.m_5818_(p_44017_, p_44018_);
+       }).findFirst();
++      p_44017_.setCurrentRecipe(optional.orElse(null));
++      return optional;
+    }
+ 
+    public <C extends Container, T extends Recipe<C>> Optional<Pair<ResourceLocation, T>> m_220248_(RecipeType<T> p_220249_, C p_220250_, Level p_220251_, @Nullable ResourceLocation p_220252_) {
+@@ -95,6 +_,11 @@
+    }
+ 
+    public <C extends Container, T extends Recipe<C>> List<T> m_44013_(RecipeType<T> p_44014_) {
++      // Lunamura start - Carpet-Fixes optimized RecipeManager (ported from Leaf)
++      if (com.mohistmc.LunamuraConfig.perf_recipe_manager_fast) {
++         return new java.util.ArrayList<>(this.m_44054_(p_44014_).values());
++      }
++      // Lunamura end
+       return List.copyOf(this.m_44054_(p_44014_).values());
+    }
+ 
+@@ -141,11 +_,17 @@
+       });
+    }
+ 
++   /** @deprecated Forge: use {@linkplain #fromJson(ResourceLocation, JsonObject, net.minecraftforge.common.crafting.conditions.ICondition.IContext) overload with context}. */
++   @Deprecated
+    public static Recipe<?> m_44045_(ResourceLocation p_44046_, JsonObject p_44047_) {
++      return fromJson(p_44046_, p_44047_, net.minecraftforge.common.crafting.conditions.ICondition.IContext.EMPTY);
++   }
++
++   public static Recipe<?> fromJson(ResourceLocation p_44046_, JsonObject p_44047_, net.minecraftforge.common.crafting.conditions.ICondition.IContext context) {
+       String s = GsonHelper.m_13906_(p_44047_, "type");
+       return BuiltInRegistries.f_256769_.m_6612_(new ResourceLocation(s)).orElseThrow(() -> {
+          return new JsonSyntaxException("Invalid or unsupported recipe type '" + s + "'");
+-      }).m_6729_(p_44046_, p_44047_);
++      }).fromJson(p_44046_, p_44047_, context);
+    }
+ 
+    public void m_44024_(Iterable<Recipe<?>> p_44025_) {
+@@ -189,4 +_,74 @@
+    public interface CachedCheck<C extends Container, T extends Recipe<C>> {
+       Optional<T> m_213657_(C p_220280_, Level p_220281_);
+    }
++
++   // CraftBukkit start
++   public void addRecipe(Recipe<?> irecipe) {
++      Map<ResourceLocation, Recipe<?>> map = this.f_44007_.get(irecipe.m_6671_());
++      Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>> map0;
++      if (!(map instanceof Object2ObjectLinkedOpenHashMap)) {
++         Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>> hashMap = new Object2ObjectLinkedOpenHashMap<>();
++         hashMap.putAll(map);
++         if (this.f_44007_ instanceof ImmutableMap) {
++            this.f_44007_ = new HashMap<>(f_44007_);
++         }
++         this.f_44007_.put(irecipe.m_6671_(), hashMap);
++         map0 = hashMap;
++      } else {
++         map0 = ((Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>>) map);
++      }
++
++      Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>> craftbukkit = this.recipesCB.get(irecipe.m_6671_()); // CraftBukkit
++
++      if (this.f_199900_.containsKey(irecipe.m_6423_()) || map0.containsKey(irecipe.m_6423_()) || (craftbukkit != null && craftbukkit.containsKey(irecipe.m_6423_()))) {
++         throw new IllegalStateException("Duplicate recipe ignored with ID " + irecipe.m_6423_());
++      } else {
++         if (this.f_199900_ instanceof ImmutableMap) {
++            this.f_199900_ = new HashMap<>(f_199900_);
++         }
++         map0.putAndMoveToFirst(irecipe.m_6423_(), irecipe);
++         if (craftbukkit != null) {
++            craftbukkit.putAndMoveToFirst(irecipe.m_6423_(), irecipe); // CraftBukkit - SPIGOT-4638: last recipe gets priority
++         }
++         this.f_199900_.put(irecipe.m_6423_(), irecipe);
++      }
++   }
++
++   public void clearRecipes() {
++      this.f_44007_ = Maps.newHashMap();
++      for (RecipeType<?> recipeType : ForgeRegistries.RECIPE_TYPES) {
++         this.f_44007_.put(recipeType, ImmutableMap.of());
++      }
++
++      this.recipesCB = Maps.newHashMap();
++      for (RecipeType<?> recipeType : BuiltInRegistries.f_256990_) {
++         this.recipesCB.put(recipeType, new Object2ObjectLinkedOpenHashMap<>());
++      }
++      this.f_199900_ = new HashMap<>();
++   }
++
++   public boolean removeRecipe(ResourceLocation mcKey) {
++      // Create a temporary mutable map for modification
++      Map<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> mutableRecipes = new HashMap<>(this.f_44007_);
++      boolean removed = false;
++
++      for (Map.Entry<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> entry : mutableRecipes.entrySet()) {
++         RecipeType<?> type = entry.getKey();
++         Map<ResourceLocation, Recipe<?>> recipeMap = new HashMap<>(entry.getValue());
++
++         if (recipeMap.remove(mcKey) != null) {
++            removed = true;
++            mutableRecipes.put(type, Collections.unmodifiableMap(recipeMap));
++         }
++      }
++
++      if (removed) {
++         this.f_44007_ = ImmutableMap.copyOf(mutableRecipes);
++      }
++      for (Object2ObjectLinkedOpenHashMap<ResourceLocation, Recipe<?>> recipes0 : recipesCB.values()) {
++         recipes0.remove(mcKey);
++      }
++      return f_199900_.remove(mcKey) != null;
++   }
++   // CraftBukkit end
+ }

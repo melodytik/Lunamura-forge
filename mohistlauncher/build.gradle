@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'io.github.goooler.shadow' version '8.1.8'
+}
+
+version = VERSION
+
+repositories {
+    maven { url = 'https://maven.aliyun.com/repository/public' }
+    maven { name = 'local-mohistmc'; url = uri("${rootDir}/local-maven-repo") }
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation 'org.jetbrains:annotations:24.1.0'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+
+    implementation 'com.mohistmc:yaml:0.8'
+    implementation 'com.mohistmc:i18n:0.6'
+    implementation 'com.mohistmc:json:0.5'
+    implementation 'com.mohistmc:tools:0.6'
+    implementation "cpw.mods:bootstraplauncher:1.1.2"
+    implementation 'me.tongfei:progressbar:0.10.0'
+    implementation 'org.jline:jline:3.25.1'
+}
+
+shadowJar {
+    dependencies {
+        include(dependency('com.mohistmc:yaml'))
+        include(dependency('com.mohistmc:i18n'))
+        include(dependency('com.mohistmc:json'))
+        include(dependency('com.mohistmc:tools'))
+        include(dependency('me.tongfei:progressbar'))
+        include(dependency('org.jline:jline'))
+    }
+}
+
+jar.dependsOn(shadowJar)

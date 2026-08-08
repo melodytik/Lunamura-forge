@@ -1,0 +1,13 @@
+--- a/net/minecraft/world/entity/ai/behavior/SleepInBed.java
++++ b/net/minecraft/world/entity/ai/behavior/SleepInBed.java
+@@ -41,7 +_,9 @@
+                   return false;
+                }
+             }
+-
++            if (!p_24154_.m_46749_(globalpos.m_122646_())) {
++               return false;
++            }
+             BlockState blockstate = p_24154_.m_8055_(globalpos.m_122646_());
+             return globalpos.m_122646_().m_203195_(p_24155_.m_20182_(), 2.0D) && blockstate.m_204336_(BlockTags.f_13038_) && !blockstate.m_61143_(BedBlock.f_49441_);
+          }

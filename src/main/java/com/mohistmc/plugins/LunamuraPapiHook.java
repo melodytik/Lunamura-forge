@@ -1,0 +1,58 @@
+package com.mohistmc.plugins;
+
+import com.mohistmc.api.WorldAPI;
+import me.clip.placeholderapi.PlaceholderAPI;
+import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+
+public class LunamuraPapiHook extends PlaceholderExpansion {
+
+    private static final String hook_name = "lunamura";
+
+    public static void init() {
+        new LunamuraPapiHook().register();
+    }
+
+    public static String replace(OfflinePlayer player, String x) {
+        return PlaceholderAPI.setPlaceholders(player, x.replace("&", "§"));
+    }
+
+    @Override
+    public String onPlaceholderRequest(Player p, @NotNull String i) {
+        if (p == null) {
+            return null;
+        }
+        if (i.equalsIgnoreCase("world_name")) {
+            return WorldAPI.getWorldName(p.getWorld()).replace("&", "§");
+        }
+
+        return null;
+    }
+
+    @Override
+    public boolean persist() {
+        return true;
+    }
+
+    @Override
+    public boolean canRegister() {
+        return true;
+    }
+
+    @Override
+    public @NotNull String getIdentifier() {
+        return hook_name;
+    }
+
+    @Override
+    public @NotNull String getAuthor() {
+        return "LunamuraMC";
+    }
+
+    @Override
+    public @NotNull String getVersion() {
+        return "1.20.1";
+    }
+}

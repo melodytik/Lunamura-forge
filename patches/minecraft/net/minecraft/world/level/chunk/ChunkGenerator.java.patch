@@ -1,0 +1,115 @@
+--- a/net/minecraft/world/level/chunk/ChunkGenerator.java
++++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
+@@ -74,12 +_,16 @@
+ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+ import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.bukkit.craftbukkit.v1_20_R1.generator.CraftLimitedRegion;
++import org.bukkit.craftbukkit.v1_20_R1.util.RandomSourceWrapper;
++import org.bukkit.generator.BlockPopulator;
++import org.spigotmc.AsyncCatcher;
+ 
+ public abstract class ChunkGenerator {
+    public static final Codec<ChunkGenerator> f_62136_ = BuiltInRegistries.f_256914_.m_194605_().dispatchStable(ChunkGenerator::m_6909_, Function.identity());
+-   protected final BiomeSource f_62137_;
++   protected BiomeSource f_62137_;
+    private final Supplier<List<FeatureSorter.StepFeatureData>> f_223020_;
+-   private final Function<Holder<Biome>, BiomeGenerationSettings> f_223021_;
++   public final Function<Holder<Biome>, BiomeGenerationSettings> f_223021_;
+ 
+    public ChunkGenerator(BiomeSource p_256133_) {
+       this(p_256133_, (p_223234_) -> {
+@@ -225,6 +_,11 @@
+                int l = p_223192_ + i * j;
+                int i1 = p_223193_ + i * k;
+                ChunkPos chunkpos = p_223197_.m_227008_(p_223196_, l, i1);
++               // Lunamura start - Fix MC-249136: avoid scanning chunks that the placement frequency already rules out
++               if (com.mohistmc.LunamuraConfig.perf_structure_locate_fix && !p_223197_.lunamuraApplyAdditionalChunkRestrictions(chunkpos.f_45578_, chunkpos.f_45579_, p_223196_)) {
++                  continue;
++               }
++               // Lunamura end
+                Pair<BlockPos, Holder<Structure>> pair = m_223198_(p_223189_, p_223190_, p_223191_, p_223195_, p_223197_, chunkpos);
+                if (pair != null) {
+                   return pair;
+@@ -265,6 +_,31 @@
+       }
+    }
+ 
++   public void addVanillaDecorations(WorldGenLevel pLevel, ChunkAccess pChunk, StructureManager pStructureManager) { // CraftBukkit
++      this.m_213609_(pLevel, pChunk, pStructureManager);
++   }
++
++   public void applyBiomeDecoration(WorldGenLevel pLevel, ChunkAccess pChunk, StructureManager pStructureManager, boolean vanilla) {
++      if (vanilla) {
++         this.addVanillaDecorations(pLevel, pChunk, pStructureManager);
++      }
++      org.bukkit.World world = pLevel.getMinecraftWorld().getWorld();
++      // only call when a populator is present (prevents unnecessary entity conversion)
++      if (!world.getPopulators().isEmpty()) {
++         CraftLimitedRegion limitedRegion = new CraftLimitedRegion(pLevel, pChunk.m_7697_());
++         int x = pChunk.m_7697_().f_45578_;
++         int z = pChunk.m_7697_().f_45579_;
++         for (BlockPopulator populator : world.getPopulators()) {
++            WorldgenRandom seededrandom = new WorldgenRandom(new LegacyRandomSource(pLevel.m_7328_()));
++            seededrandom.m_64690_(pLevel.m_7328_(), x, z);
++            populator.populate(world, new RandomSourceWrapper.RandomWrapper(seededrandom), x, z, limitedRegion);
++         }
++         limitedRegion.saveEntities();
++         limitedRegion.breakLink();
++      }
++      // CraftBukkit end
++   }
++
+    public void m_213609_(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) {
+       ChunkPos chunkpos = p_223088_.m_7697_();
+       if (!SharedConstants.m_183707_(chunkpos)) {
+@@ -363,6 +_,21 @@
+             throw new ReportedException(crashreport);
+          }
+       }
++      org.bukkit.World world = p_223087_.getMinecraftWorld().getWorld();
++      // only call when a populator is present (prevents unnecessary entity conversion)
++      if (!world.getPopulators().isEmpty()) {
++         CraftLimitedRegion limitedRegion = new CraftLimitedRegion(p_223087_, p_223088_.m_7697_());
++         int x = p_223088_.m_7697_().f_45578_;
++         int z = p_223088_.m_7697_().f_45579_;
++         for (BlockPopulator populator : world.getPopulators()) {
++            WorldgenRandom seededrandom = new WorldgenRandom(new LegacyRandomSource(p_223087_.m_7328_()));
++            seededrandom.m_64690_(p_223087_.m_7328_(), x, z);
++            populator.populate(world, new RandomSourceWrapper.RandomWrapper(seededrandom), x, z, limitedRegion);
++         }
++         limitedRegion.saveEntities();
++         limitedRegion.breakLink();
++      }
++      // CraftBukkit end
+    }
+ 
+    private static BoundingBox m_187717_(ChunkAccess p_187718_) {
+@@ -387,6 +_,10 @@
+       return this.f_62137_;
+    }
+ 
++   public void setBiomeSource(BiomeSource biomeSource) {
++      this.f_62137_ = biomeSource;
++   }
++
+    public abstract int m_6331_();
+ 
+    public WeightedRandomList<MobSpawnSettings.SpawnerData> m_223133_(Holder<Biome> p_223134_, StructureManager p_223135_, MobCategory p_223136_, BlockPos p_223137_) {
+@@ -480,6 +_,16 @@
+       Predicate<Holder<Biome>> predicate = holderset::m_203333_;
+       StructureStart structurestart = structure.m_226596_(p_223107_, this, this.f_62137_, p_223108_, p_223109_, p_223110_, p_223112_, i, p_223111_, predicate);
+       if (structurestart.m_73603_()) {
++         if (AsyncCatcher.catchAsync()) {
++            // CraftBukkit start
++            BoundingBox box = structurestart.m_73601_();
++            org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(p_223106_.f_220460_.getMinecraftWorld().getWorld(), org.bukkit.craftbukkit.v1_20_R1.generator.structure.CraftStructure.minecraftToBukkit(structure, p_223107_), new org.bukkit.util.BoundingBox(box.m_162395_(), box.m_162396_(), box.m_162398_(), box.m_162399_(), box.m_162400_(), box.m_162401_()), p_223112_.f_45578_, p_223112_.f_45579_);
++            org.bukkit.Bukkit.getPluginManager().callEvent(event);
++            if (event.isCancelled()) {
++               return true;
++            }
++            // CraftBukkit end
++         }
+          p_223106_.m_220516_(p_223113_, structure, structurestart, p_223111_);
+          return true;
+       } else {

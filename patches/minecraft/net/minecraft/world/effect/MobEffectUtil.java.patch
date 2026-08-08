@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/effect/MobEffectUtil.java
++++ b/net/minecraft/world/effect/MobEffectUtil.java
+@@ -53,4 +_,13 @@
+       });
+       return list;
+    }
++
++   // CraftBukkit start
++   public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel pLevel, @Nullable Entity pSource, Vec3 pPos, double pRadius, MobEffectInstance pEffect, int pDuration, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
++      // Lunamura start
++      LivingEntity.addEffectCause.set(cause);
++      return m_216946_(pLevel, pSource, pPos, pRadius, pEffect, pDuration);
++      // Lunamura end
++   }
++   // CraftBukkit end
+ }

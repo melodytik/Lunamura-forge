@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
+@@ -70,6 +_,12 @@
+    }
+ 
+    protected abstract boolean m_214090_(ChunkGeneratorStructureState p_256034_, int p_227046_, int p_227047_);
++
++   // Lunamura start - Fix MC-249136: expose the cheap frequency restriction so callers can pre-filter
++   public boolean lunamuraApplyAdditionalChunkRestrictions(int chunkX, int chunkZ, long levelSeed) {
++      return !(this.f_227024_ < 1.0F) || this.f_227023_.m_227119_(levelSeed, this.f_227025_, chunkX, chunkZ, this.f_227024_);
++   }
++   // Lunamura end
+ 
+    public BlockPos m_227039_(ChunkPos p_227040_) {
+       return (new BlockPos(p_227040_.m_45604_(), 0, p_227040_.m_45605_())).m_121955_(this.m_227072_());

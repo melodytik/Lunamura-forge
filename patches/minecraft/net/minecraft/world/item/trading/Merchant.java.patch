@@ -1,0 +1,32 @@
+--- a/net/minecraft/world/item/trading/Merchant.java
++++ b/net/minecraft/world/item/trading/Merchant.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item.trading;
+ 
++import com.mohistmc.paper.event.player.PlayerPurchaseEvent;
+ import java.util.OptionalInt;
+ import javax.annotation.Nullable;
+ import net.minecraft.network.chat.Component;
+@@ -8,6 +_,7 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.inventory.MerchantMenu;
+ import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftMerchant;
+ 
+ public interface Merchant {
+    void m_7189_(@Nullable Player p_45307_);
+@@ -19,6 +_,7 @@
+ 
+    void m_6255_(MerchantOffers p_45306_);
+ 
++   default void processTrade(MerchantOffer merchantRecipe, @Nullable PlayerPurchaseEvent event) { this.m_6996_(merchantRecipe); } // Paper
+    void m_6996_(MerchantOffer p_45305_);
+ 
+    void m_7713_(ItemStack p_45308_);
+@@ -49,4 +_,6 @@
+    }
+ 
+    boolean m_183595_();
++
++   CraftMerchant getCraftMerchant();
+ }

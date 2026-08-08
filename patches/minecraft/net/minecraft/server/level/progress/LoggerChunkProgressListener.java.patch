@@ -1,0 +1,23 @@
+--- a/net/minecraft/server/level/progress/LoggerChunkProgressListener.java
++++ b/net/minecraft/server/level/progress/LoggerChunkProgressListener.java
+@@ -15,6 +_,7 @@
+    private int f_9624_;
+    private long f_9625_;
+    private long f_9626_ = Long.MAX_VALUE;
++   private int progress = 0;
+ 
+    public LoggerChunkProgressListener(int p_9629_) {
+       int i = p_9629_ * 2 + 1;
+@@ -34,7 +_,11 @@
+       int i = this.m_9636_();
+       if (Util.m_137550_() > this.f_9626_) {
+          this.f_9626_ += 500L;
+-         f_9622_.info(Component.m_237110_("menu.preparingSpawn", Mth.m_14045_(i, 0, 100)).getString());
++         int s = Mth.m_14045_(i, 0, 100);
++         if (progress != s) {
++            progress = s;
++            f_9622_.info(Component.m_237110_("menu.preparingSpawn", s).getString());
++         }
+       }
+ 
+    }

@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/entity/projectile/ThrowableItemProjectile.java
++++ b/net/minecraft/world/entity/projectile/ThrowableItemProjectile.java
+@@ -34,7 +_,13 @@
+ 
+    protected abstract Item m_7881_();
+ 
+-   protected ItemStack m_37454_() {
++   // CraftBukkit start
++   public Item getDefaultItemPublic() {
++      return m_7881_();
++   }
++   // CraftBukkit end
++
++   public ItemStack m_37454_() {
+       return this.m_20088_().m_135370_(f_37429_);
+    }
+ 

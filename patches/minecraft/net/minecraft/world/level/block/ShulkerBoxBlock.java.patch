@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/ShulkerBoxBlock.java
++++ b/net/minecraft/world/level/block/ShulkerBoxBlock.java
+@@ -238,7 +_,10 @@
+    }
+ 
+    public int m_6782_(BlockState p_56223_, Level p_56224_, BlockPos p_56225_) {
+-      return AbstractContainerMenu.m_38938_((Container)p_56224_.m_7702_(p_56225_));
++      if (p_56224_.m_7702_(p_56225_) instanceof Container) {
++         return AbstractContainerMenu.m_38938_((Container)p_56224_.m_7702_(p_56225_));
++      }
++      return AbstractContainerMenu.m_38918_(p_56224_.m_7702_(p_56225_));
+    }
+ 
+    public ItemStack m_7397_(BlockGetter p_56202_, BlockPos p_56203_, BlockState p_56204_) {

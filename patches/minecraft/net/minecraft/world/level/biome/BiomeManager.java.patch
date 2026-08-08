@@ -1,0 +1,96 @@
+--- a/net/minecraft/world/level/biome/BiomeManager.java
++++ b/net/minecraft/world/level/biome/BiomeManager.java
+@@ -14,6 +_,7 @@
+    private static final int f_186675_ = 3;
+    private final BiomeManager.NoiseBiomeSource f_47862_;
+    private final long f_47863_;
++   private static final double LUNAMURA_MAX_OFFSET = 0.4500000001D; // Lunamura - Carpet-Fixes optimized getBiome
+ 
+    public BiomeManager(BiomeManager.NoiseBiomeSource p_186677_, long p_186678_) {
+       this.f_47862_ = p_186677_;
+@@ -29,6 +_,11 @@
+    }
+ 
+    public Holder<Biome> m_204214_(BlockPos p_204215_) {
++      // Lunamura start - Carpet-Fixes optimized getBiome (ported from Leaf), gated by lunamura.yml
++      if (com.mohistmc.LunamuraConfig.perf_get_biome_fast) {
++         return this.lunamuraGetBiomeFast(p_204215_);
++      }
++      // Lunamura end
+       int i = p_204215_.m_123341_() - 2;
+       int j = p_204215_.m_123342_() - 2;
+       int k = p_204215_.m_123343_() - 2;
+@@ -63,6 +_,73 @@
+       int j3 = (k1 & 1) == 0 ? j1 : j1 + 1;
+       return this.f_47862_.m_203495_(l2, i3, j3);
+    }
++
++   // Lunamura start - Carpet-Fixes optimized getBiome (ported from Leaf / KeYi), vanilla-equivalent result
++   private Holder<Biome> lunamuraGetBiomeFast(BlockPos pos) {
++      int xMinus2 = pos.m_123341_() - 2;
++      int yMinus2 = pos.m_123342_() - 2;
++      int zMinus2 = pos.m_123343_() - 2;
++      int x = xMinus2 >> 2;
++      int y = yMinus2 >> 2;
++      int z = zMinus2 >> 2;
++      double quartX = (double)(xMinus2 & 3) / 4.0D;
++      double quartY = (double)(yMinus2 & 3) / 4.0D;
++      double quartZ = (double)(zMinus2 & 3) / 4.0D;
++      int smallestIdx = 0;
++      double smallestDist = Double.POSITIVE_INFINITY;
++
++      for(int i = 0; i < 8; ++i) {
++         boolean everyOtherQuad = (i & 4) == 0;
++         boolean everyOtherPair = (i & 2) == 0;
++         boolean everyOther = (i & 1) == 0;
++         double quartXX = everyOtherQuad ? quartX : quartX - 1.0D;
++         double quartYY = everyOtherPair ? quartY : quartY - 1.0D;
++         double quartZZ = everyOther ? quartZ : quartZ - 1.0D;
++         double maxQuartYY = 0.0D;
++         double maxQuartZZ = 0.0D;
++         if (i != 0) {
++            maxQuartYY = Mth.m_144952_(Math.max(quartYY + LUNAMURA_MAX_OFFSET, Math.abs(quartYY - LUNAMURA_MAX_OFFSET)));
++            maxQuartZZ = Mth.m_144952_(Math.max(quartZZ + LUNAMURA_MAX_OFFSET, Math.abs(quartZZ - LUNAMURA_MAX_OFFSET)));
++            double maxQuartXX = Mth.m_144952_(Math.max(quartXX + LUNAMURA_MAX_OFFSET, Math.abs(quartXX - LUNAMURA_MAX_OFFSET)));
++            if (smallestDist < maxQuartXX + maxQuartYY + maxQuartZZ) {
++               continue;
++            }
++         }
++
++         int xx = everyOtherQuad ? x : x + 1;
++         int yy = everyOtherPair ? y : y + 1;
++         int zz = everyOther ? z : z + 1;
++         long seed = LinearCongruentialGenerator.m_13972_(this.f_47863_, (long)xx);
++         seed = LinearCongruentialGenerator.m_13972_(seed, (long)yy);
++         seed = LinearCongruentialGenerator.m_13972_(seed, (long)zz);
++         seed = LinearCongruentialGenerator.m_13972_(seed, (long)xx);
++         seed = LinearCongruentialGenerator.m_13972_(seed, (long)yy);
++         seed = LinearCongruentialGenerator.m_13972_(seed, (long)zz);
++         double offsetX = m_186689_(seed);
++         double sqrX = Mth.m_144952_(quartXX + offsetX);
++         if (i != 0 && smallestDist < sqrX + maxQuartYY + maxQuartZZ) {
++            continue;
++         }
++
++         seed = LinearCongruentialGenerator.m_13972_(seed, this.f_47863_);
++         double offsetY = m_186689_(seed);
++         double sqrY = Mth.m_144952_(quartYY + offsetY);
++         if (i != 0 && smallestDist < sqrX + sqrY + maxQuartZZ) {
++            continue;
++         }
++
++         seed = LinearCongruentialGenerator.m_13972_(seed, this.f_47863_);
++         double offsetZ = m_186689_(seed);
++         double biomeDist = Mth.m_144952_(quartZZ + offsetZ) + sqrY + sqrX;
++         if (smallestDist > biomeDist) {
++            smallestIdx = i;
++            smallestDist = biomeDist;
++         }
++      }
++
++      return this.f_47862_.m_203495_((smallestIdx & 4) == 0 ? x : x + 1, (smallestIdx & 2) == 0 ? y : y + 1, (smallestIdx & 1) == 0 ? z : z + 1);
++   }
++   // Lunamura end
+ 
+    public Holder<Biome> m_204206_(double p_204207_, double p_204208_, double p_204209_) {
+       int i = QuartPos.m_175400_(Mth.m_14107_(p_204207_));

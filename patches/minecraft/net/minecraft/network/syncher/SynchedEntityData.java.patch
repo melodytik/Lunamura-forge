@@ -1,0 +1,84 @@
+--- a/net/minecraft/network/syncher/SynchedEntityData.java
++++ b/net/minecraft/network/syncher/SynchedEntityData.java
+@@ -18,8 +_,12 @@
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+ import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.LivingEntity;
+ import org.apache.commons.lang3.ObjectUtils;
++import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
+ import org.slf4j.Logger;
+ 
+ public class SynchedEntityData {
+@@ -123,6 +_,10 @@
+    }
+ 
+    public <T> void m_276349_(EntityDataAccessor<T> p_276368_, T p_276363_, boolean p_276370_) {
++      if (p_276368_ == LivingEntity.f_20961_ && this.f_135344_ instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
++         CraftPlayer player = serverPlayer.getBukkitEntity();
++         player.setRealHealth(((Float) p_276363_));
++      }
+       SynchedEntityData.DataItem<T> dataitem = this.m_135379_(p_276368_);
+       if (p_276370_ || ObjectUtils.notEqual(p_276363_, dataitem.m_135403_())) {
+          dataitem.m_135397_(p_276363_);
+@@ -209,6 +_,57 @@
+    public boolean m_135388_() {
+       return this.f_135345_.isEmpty();
+    }
++
++   // CraftBukkit start - add method from above
++   public <T> void markDirty(EntityDataAccessor<T> datawatcherobject) {
++      this.m_135379_(datawatcherobject).m_135401_(true);
++      this.f_135348_ = true;
++   }
++   // CraftBukkit end
++
++
++   // CraftBukkit start
++   public void refresh(ServerPlayer to) {
++      if (!this.m_135388_()) {
++         List<SynchedEntityData.DataValue<?>> list = this.m_252804_();
++
++         if (list != null) {
++            to.f_8906_.m_9829_(new ClientboundSetEntityDataPacket(this.f_135344_.m_19879_(), list));
++         }
++      }
++   }
++   // CraftBukkit end
++   // Paper start
++   // We need to pack all as we cannot rely on "non default values" or "dirty" ones.
++   // Because these values can possibly be desynced on the client.
++   @Nullable
++   private List<SynchedEntityData.DataValue<?>> packAll() {
++      if (this.m_135388_()) {
++         return null;
++      }
++
++      List<SynchedEntityData.DataValue<?>> list = new ArrayList<>();
++      for (DataItem<?> dataItem : this.f_135345_.values()) {
++         list.add(dataItem.m_253123_());
++      }
++
++      return list;
++   }
++
++   // This method allows you to specifically resend certain data accessor keys to the client
++   public void resendPossiblyDesyncedDataValues(List<EntityDataAccessor<?>> keys, ServerPlayer to) {
++      if (!to.getBukkitEntity().canSee(this.f_135344_.getBukkitEntity())) {
++         return;
++      }
++      List<SynchedEntityData.DataValue<?>> values = new ArrayList<>(keys.size());
++      for (EntityDataAccessor<?> key : keys) {
++         SynchedEntityData.DataItem<?> synchedValue = this.m_135379_(key);
++         values.add(synchedValue.m_253123_());
++      }
++
++      to.f_8906_.m_9829_(new ClientboundSetEntityDataPacket(this.f_135344_.m_19879_(), values));
++   }
++   // Paper end
+ 
+    public static class DataItem<T> {
+       final EntityDataAccessor<T> f_135390_;

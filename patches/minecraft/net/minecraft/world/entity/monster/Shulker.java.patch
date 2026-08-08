@@ -1,0 +1,60 @@
+--- a/net/minecraft/world/entity/monster/Shulker.java
++++ b/net/minecraft/world/entity/monster/Shulker.java
+@@ -55,6 +_,9 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.v1_20_R1.event.CraftEventFactory;
++import org.bukkit.craftbukkit.v1_20_R1.util.CraftLocation;
++import org.bukkit.event.entity.EntityTeleportEvent;
+ import org.joml.Vector3f;
+ import org.joml.Vector3fc;
+ 
+@@ -360,6 +_,13 @@
+             if (blockpos1.m_123342_() > this.m_9236_().m_141937_() && this.m_9236_().m_46859_(blockpos1) && this.m_9236_().m_6857_().m_61937_(blockpos1) && this.m_9236_().m_45756_(this, (new AABB(blockpos1)).m_82406_(1.0E-6D))) {
+                Direction direction = this.m_149810_(blockpos1);
+                if (direction != null) {
++                  net.minecraftforge.event.entity.EntityTeleportEvent.EnderEntity event = net.minecraftforge.event.ForgeEventFactory.onEnderTeleport(this, blockpos1.m_123341_(), blockpos1.m_123342_(), blockpos1.m_123343_());
++                  EntityTeleportEvent teleportEvent = CraftEventFactory.callEntityTeleportEvent(this, event.getTargetX(), event.getTargetY(), event.getTargetZ()); // Lunamura hook forge event
++                  if (event.isCanceled() || teleportEvent.isCancelled()) direction = null;
++                  blockpos1 = CraftLocation.toBlockPosition(teleportEvent.getTo()); // Lunamura hook forge event
++               }
++
++               if (direction != null) {
+                   this.m_19877_();
+                   this.m_149788_(direction);
+                   this.m_5496_(SoundEvents.f_12418_, 1.0F, 1.0F);
+@@ -423,9 +_,9 @@
+             if (shulker != null) {
+                shulker.m_28464_(this.m_28554_());
+                shulker.m_20219_(vec3);
++               shulker.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);  // CraftBukkit - the mysteries of life
+                this.m_9236_().m_7967_(shulker);
+             }
+-
+          }
+       }
+    }
+@@ -438,7 +_,7 @@
+       return this.f_19804_.m_135370_(f_33392_);
+    }
+ 
+-   private void m_149788_(Direction p_149789_) {
++   public void m_149788_(Direction p_149789_) {
+       this.f_19804_.m_135381_(f_33392_, p_149789_);
+    }
+ 
+@@ -450,11 +_,11 @@
+       super.m_7350_(p_33434_);
+    }
+ 
+-   private int m_33463_() {
++   public int m_33463_() {
+       return this.f_19804_.m_135370_(f_33401_);
+    }
+ 
+-   void m_33418_(int p_33419_) {
++   public void m_33418_(int p_33419_) {
+       if (!this.m_9236_().f_46443_) {
+          this.m_21051_(Attributes.f_22284_).m_22130_(f_33395_);
+          if (p_33419_ == 0) {
