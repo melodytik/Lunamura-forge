@@ -11,6 +11,8 @@
 
 **Forge 模组 + Bukkit/Spigot/Paper 插件双兼容 &middot; 内置十余项性能与稳定性优化**
 
+
+[![](https://bstats.org/signatures/server-implementation/Lunamura.svg)](https://bstats.org/plugin/server-implementation/Lunamura/33225)
 </div>
 
 ---
@@ -31,23 +33,23 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 
 ## 主要特性 / Features
 
-### 1. Leaf 性能优化
+### 1. Leaf 性能优化（移植）
 
 从 [Leaf](https://github.com/Winds-Studio/Leaf)（Paper 系高性能分支）移植，所有优化均可通过配置逐项开关。
 
 | 配置键 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
-| `perf_get_biome_fast` | boolean | `true` | 群系查询快速路径，绕过不必要的对象创建 |
-| `perf_game_event_prefilter` | boolean | `true` | 游戏事件监听器预声明，跳过无谓派发（降低 Sculk 系方块 CPU 占用） |
-| `perf_structure_locate_fix` | boolean | `true` | 结构定位算法修复与加速 |
-| `perf_recipe_manager_fast` | boolean | `true` | 配方查询直接返回 byType Map 的 values，省去流式过滤 |
-| `perf_natural_spawn_fast` | boolean | `false` | 绕过 SecureRandom 种子初始化，使用 LCG 快速种子（⚠️ 牺牲部分随机性） |
-| `perf_minecart_collision` | boolean | `false` | 矿车碰撞扫描按 tick 节流 |
-| `perf_minecart_collision_skip_ticks` | int | `4` | 矿车碰撞扫描的跳过间隔（tick） |
-| `perf_entity_ttl` | boolean | `false` | 实体存活时间上限（自动清理逾期实体） |
-| `perf_entity_ttl_ticks` | int | `12000` | 实体存活上限（tick，默认 10 分钟） |
+| `lunamura.perf_get_biome_fast` | boolean | `true` | 群系查询快速路径，绕过不必要的对象创建 |
+| `lunamura.perf_game_event_prefilter` | boolean | `true` | 游戏事件监听器预声明，跳过无谓派发（降低 Sculk 系方块 CPU 占用） |
+| `lunamura.perf_structure_locate_fix` | boolean | `true` | 结构定位算法修复与加速 |
+| `lunamura.perf_recipe_manager_fast` | boolean | `true` | 配方查询直接返回 byType Map 的 values，省去流式过滤 |
+| `lunamura.perf_natural_spawn_fast` | boolean | `false` | 绕过 SecureRandom 种子初始化，使用 LCG 快速种子（⚠️ 牺牲部分随机性） |
+| `lunamura.perf_minecart_collision` | boolean | `false` | 矿车碰撞扫描按 tick 节流 |
+| `lunamura.perf_minecart_collision_skip_ticks` | int | `4` | 矿车碰撞扫描的跳过间隔（tick） |
+| `lunamura.perf_entity_ttl` | boolean | `false` | 实体存活时间上限（自动清理逾期实体） |
+| `lunamura.perf_entity_ttl_ticks` | int | `12000` | 实体存活上限（tick，默认 10 分钟） |
 
-### 2. CatServer 稳定性补丁
+### 2. CatServer 稳定性补丁（移植）
 
 从 [CatServer](https://github.com/Luohuayu/CatServer) 移植的关键健壮性修复：
 
@@ -67,23 +69,48 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 - **`CompletableFuture.runAsync` 重定向**：将插件内的异步调用重定向到 TCCL 正确的 ForkJoinPool，修复 TrChat 等插件在 `EventSubclassTransformer` 中的崩溃
 - **Java 21 API 降级**：在 Java 17 环境下自动将 `List#getFirst()/getLast()` 降级为 `get(0)/get(size()-1)`，修复 QuickShop-Hikari 等按 Java 21 编译的插件
 
-### 3. PROXY Protocol 支持
+### 3. 原创性能优化
+
+针对混合端（Forge + Bukkit）主线程压力自研的优化，**不照搬任何上游实现**：
+
+| 配置键 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `lunamura.perf_spawn_count_interval` | int | `5` | **刷怪配额计数节流**：每 N tick 才重算一次 mob cap 计数，中间复用缓存结果，省去每 tick 的全实体遍历（设 `1` 恢复原版行为） |
+| `lunamura.perf_async_player_save` | boolean | `true` | **异步玩家数据保存**：主线程只做 NBT 序列化（快照），gzip 压缩 + 写盘下放后台单线程，关服时 shutdown hook 兜底 flush |
+| `lunamura.perf_async_save_json` | boolean | `true` | **异步存档 JSON**：op/ban/whitelist 等用户列表的序列化留主线程，写盘下放后台单线程串行（避免并发写文件） |
+| `lunamura.stop_save_timeout_ms` | int | `10000` | **关服存盘超时**：`/stop` 时区块排空循环超时保护，防止光照更新卡住或强制加载区块导致永真循环、无法正常关服 |
+
+### 4. 其他功能
+
+| 配置键 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `lunamura.enable_fma` | boolean | `false` | **FMA 融合乘加**：对 `Vec3`（点积/平方距离）与 `Mth.lerp` 使用 `Math.fma` 加速数学计算（⚠️ 需 CPU 支持 FMA 指令集，且会改变浮点舍入 → 地形种子可能与 vanilla 不一致） |
+| `lunamura.library_download_repo` | string | 空 | 插件依赖库下载仓库镜像（默认 CN 自动选阿里云、否则 Maven Central；配了 URL 就覆盖） |
+
+### 5. PROXY Protocol 支持
 
 - 同时支持 **v1**（文本 `PROXY TCP4/TCP6 ...`）与 **v2**（二进制头）
 - **智能检测**：自动判断连接是否为 PROXY 协议，既可处理代理转发，也兼容玩家直连
 - 正确处理 PROXY 头与 Minecraft 握手合并在同一 TCP 段的场景（HAProxy / Nginx `send-proxy` 极其常见）
 - 启用：`lunamura.proxy_protocol: true`
 
-### 4. 其他改进
+### 6. 核心 Bug 修复
+
+| 问题 | 修复 |
+|---|---|
+| 开启死亡不掉落后重生**装备消失** | 恢复 `restoreFrom` 被误删的 `RULE_KEEPINVENTORY` 判断 |
+| 开启死亡不掉落后**经验每次死亡清空** | 经验复制改为与物品栏一致的无条件门控（移除被 `reset()` 提前清零的 `keepLevel` 门槛） |
+| **切换世界/维度后经验条变空**、吸经验球才恢复 | `changeDimension` 与 `teleportTo` 跨世界路径补齐经验包显式发送 |
+
+### 7. 其他改进
 
 | 配置键 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
-| `lunamura.show_logo` | boolean | `true` | 启动时显示 Lunamura 字符画 |
 | `lunamura.lang` | string | 系统默认 | 服务端语言（如 `zh_CN`、`en_US`） |
 | `lunamura.ping_status_version` | string | `lunamura 1.20.1` | 服务器列表显示的版本名称 |
 | `lunamura.watchdog_spigot` | boolean | `true` | 启用 Spigot Watchdog 线程监控 |
 | `lunamura.watchdog_lunamura` | boolean | `false` | 启用 Lunamura 额外线程监控 |
-| `threadpriority.server_thread` | int | `8` | 服务端主线程优先级 |
+| `threadpriority.server_thread` | int | `8` | 服务端主线程优先级（1-10） |
 | `world.async_save` | boolean | `false` | 异步保存世界（减少卡顿） |
 | `anvilfix.maximumrepaircost` | int | `40` | 铁砧最大修复花费 |
 | `anvilfix.enchantment_fix` | boolean | `false` | 附魔等级修复 |

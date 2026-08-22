@@ -157,7 +157,6 @@ public class LunamuraConfig {
         return yml.getString("lunamura.lang", Locale.getDefault().toString());
     }
 
-    public static boolean show_logo;
     public static String lunamura_lang;
     public static int maximumRepairCost;
     public static boolean enchantment_fix;
@@ -188,6 +187,11 @@ public class LunamuraConfig {
     public static boolean perf_game_event_prefilter;
     public static boolean perf_structure_locate_fix;
     public static boolean perf_recipe_manager_fast;
+    public static boolean enable_fma;
+    public static boolean perf_async_save_json;
+    public static int perf_spawn_count_interval;
+    public static boolean perf_async_player_save;
+    public static int stop_save_timeout_ms;
 
     // CatServer performance/robustness ports (config key prefix: cat.)
     public static boolean catActivationNullGuard;
@@ -204,9 +208,9 @@ public class LunamuraConfig {
     public static String server_mod_name;
 
     public static String ping_status_version;
+    public static String library_download_repo;
 
     private static void lunamura() {
-        show_logo = getBoolean("lunamura.show_logo", true);
         lunamura_lang = getString("lunamura.lang", Locale.getDefault().toString());
         ping_status_version = getString("lunamura.ping_status_version", "lunamura 1.20.1");
         watchdog_spigot = getBoolean("lunamura.watchdog_spigot", true);
@@ -219,6 +223,8 @@ public class LunamuraConfig {
         server_modlist_whitelist_enable = getBoolean("server_modlist_whitelist.enable", false);
         server_modlist_whitelist = getString("server_modlist_whitelist.list", ServerAPI.modlists_All.toString().replace(", lunamura", ""));
         server_thread = getInt("threadpriority.server_thread", 8);
+        if (server_thread < 1) server_thread = 1;
+        else if (server_thread > 10) server_thread = 10;
 
         bukkitpermissionshandler = getBoolean("forge.bukkitpermissionshandler", true);
 
@@ -227,6 +233,7 @@ public class LunamuraConfig {
 
         async_save_world = getBoolean("world.async_save", false);
         proxy_protocol = getBoolean("lunamura.proxy_protocol", false);
+        library_download_repo = getString("lunamura.library_download_repo", "");
         perf_entity_ttl = getBoolean("lunamura.perf_entity_ttl", false);
         perf_entity_ttl_ticks = getInt("lunamura.perf_entity_ttl_ticks", 12000);
         perf_get_biome_fast = getBoolean("lunamura.perf_get_biome_fast", true);
@@ -236,6 +243,11 @@ public class LunamuraConfig {
         perf_game_event_prefilter = getBoolean("lunamura.perf_game_event_prefilter", true);
         perf_structure_locate_fix = getBoolean("lunamura.perf_structure_locate_fix", true);
         perf_recipe_manager_fast = getBoolean("lunamura.perf_recipe_manager_fast", true);
+        enable_fma = getBoolean("lunamura.enable_fma", false);
+        perf_async_save_json = getBoolean("lunamura.perf_async_save_json", true);
+        perf_spawn_count_interval = getInt("lunamura.perf_spawn_count_interval", 5);
+        perf_async_player_save = getBoolean("lunamura.perf_async_player_save", true);
+        stop_save_timeout_ms = getInt("lunamura.stop_save_timeout_ms", 10000);
 
         // CatServer ports (config key prefix: cat.)
         catActivationNullGuard = getBoolean("cat.activation_null_guard", true);

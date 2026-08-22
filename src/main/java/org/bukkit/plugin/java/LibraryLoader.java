@@ -1,6 +1,7 @@
 // CHECKSTYLE:OFF
 package org.bukkit.plugin.java;
 
+import com.mohistmc.LunamuraConfig;
 import com.mohistmc.bukkit.PluginsLibrarySource;
 import com.mohistmc.bukkit.remapping.RemappingURLClassLoader;
 import com.mohistmc.org.apache.maven.repository.internal.MavenRepositorySystemUtils;
@@ -70,7 +71,12 @@ public class LibraryLoader {
         });
         session.setReadOnly();
 
-        this.repositories = repository.newResolutionRepositories(session, Arrays.asList(new RemoteRepository.Builder("central", "default", PluginsLibrarySource.DEFAULT).build()));
+        String cfgRepo = LunamuraConfig.library_download_repo;
+        String repoUrl = (cfgRepo == null || cfgRepo.isEmpty()) ? PluginsLibrarySource.DEFAULT : cfgRepo;
+        this.repositories = repository.newResolutionRepositories(session, Arrays.asList(new RemoteRepository.Builder("central", "default", repoUrl).build()));
+        if (cfgRepo != null && !cfgRepo.isEmpty()) {
+            logger.log(Level.INFO, "Lunamura: using configured library download repo: " + repoUrl);
+        }
     }
 
     @Nullable

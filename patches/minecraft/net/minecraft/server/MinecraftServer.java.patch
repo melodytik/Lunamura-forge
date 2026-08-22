@@ -65,7 +65,7 @@
     private PlayerList f_129763_;
     private volatile boolean f_129764_ = true;
     private boolean f_129765_;
-@@ -237,24 +_,44 @@
+@@ -237,24 +_,47 @@
     private final FrameTimer f_129735_ = new FrameTimer();
     private boolean f_129736_;
     private float f_129737_;
@@ -110,7 +110,10 @@
        });
        if (Runtime.getRuntime().availableProcessors() > 4) {
 -         thread.setPriority(8);
-+         thread.setPriority(LunamuraConfig.yml.getInt("threadpriority.server_thread", 8));
++         int lunamuraServerThreadPriority = LunamuraConfig.yml.getInt("threadpriority.server_thread", 8);
++         if (lunamuraServerThreadPriority < 1) lunamuraServerThreadPriority = 1;
++         else if (lunamuraServerThreadPriority > 10) lunamuraServerThreadPriority = 10;
++         thread.setPriority(lunamuraServerThreadPriority);
        }
  
        S s = p_129873_.apply(thread);
@@ -424,6 +427,44 @@
        }
  
        f_129750_.info("Saving worlds");
+@@ -563,18 +_,23 @@
+       }
+ 
+-      while(this.f_129762_.values().stream().anyMatch((p_202480_) -> {
+-         return p_202480_.m_7726_().f_8325_.m_201907_();
+-      })) {
+-         this.f_129726_ = Util.m_137550_() + 1L;
+-
+-         for(ServerLevel serverlevel1 : this.m_129785_()) {
+-            serverlevel1.m_7726_().m_201915_();
+-            serverlevel1.m_7726_().m_201698_(() -> {
+-               return true;
+-            }, false);
+-         }
+-
+-         this.m_130012_();
+-      }
++      long lunamuraStopDeadline = Util.m_137550_() + com.mohistmc.LunamuraConfig.stop_save_timeout_ms;
++      while(this.f_129762_.values().stream().anyMatch((p_202480_) -> {
++         return p_202480_.m_7726_().f_8325_.m_201907_();
++      })) {
++         if (Util.m_137550_() > lunamuraStopDeadline) {
++            f_129750_.warn("Timed out draining chunk work during shutdown; forcing world save");
++            break;
++         }
++         this.f_129726_ = Util.m_137550_() + 1L;
++
++         for(ServerLevel serverlevel1 : this.m_129785_()) {
++            serverlevel1.m_7726_().m_201915_();
++            serverlevel1.m_7726_().m_201698_(() -> {
++               return true;
++            }, false);
++         }
++
++         this.m_130012_();
++      }
+ 
+       this.m_129885_(false, true, false);
 @@ -582,6 +_,7 @@
        for(ServerLevel serverlevel2 : this.m_129785_()) {
           if (serverlevel2 != null) {

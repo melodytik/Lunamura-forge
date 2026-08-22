@@ -1,0 +1,37 @@
+--- a/net/minecraft/server/players/StoredUserList.java
++++ b/net/minecraft/server/players/StoredUserList.java
+@@ -106,15 +_,25 @@
+    }
+ 
+    public void m_11398_() throws IOException {
+-      JsonArray jsonarray = new JsonArray();
+-      this.f_11377_.values().stream().map((p_11392_) -> {
+-         return Util.m_137469_(new JsonObject(), p_11392_::m_6009_);
+-      }).forEach(jsonarray::add);
+-
+-      try (BufferedWriter bufferedwriter = Files.newWriter(this.f_11376_, StandardCharsets.UTF_8)) {
+-         f_11375_.toJson((JsonElement)jsonarray, bufferedwriter);
+-      }
+-
++      JsonArray jsonarray = new JsonArray();
++      this.f_11377_.values().stream().map((p_11392_) -> {
++         return Util.m_137469_(new JsonObject(), p_11392_::m_6009_);
++      }).forEach(jsonarray::add);
++      if (!com.mohistmc.LunamuraConfig.perf_async_save_json) {
++         try (BufferedWriter bufferedwriter = Files.newWriter(this.f_11376_, StandardCharsets.UTF_8)) {
++            f_11375_.toJson((JsonElement)jsonarray, bufferedwriter);
++         }
++         return;
++      }
++      final JsonArray lunamuraSnapshot = jsonarray;
++      final File lunamuraFile = this.f_11376_;
++      com.mohistmc.LunamuraAsyncSave.runAsyncWrite(() -> {
++         try (BufferedWriter bufferedwriter = Files.newWriter(lunamuraFile, StandardCharsets.UTF_8)) {
++            f_11375_.toJson((JsonElement)lunamuraSnapshot, bufferedwriter);
++         } catch (Exception e) {
++            e.printStackTrace();
++         }
++      });
+    }
+ 
+    public void m_11399_() throws IOException {

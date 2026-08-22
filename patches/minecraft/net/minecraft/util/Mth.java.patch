@@ -1,0 +1,19 @@
+--- a/net/minecraft/util/Mth.java
++++ b/net/minecraft/util/Mth.java
+@@ -488,10 +_,16 @@
+    }
+ 
+    public static float m_14179_(float p_14180_, float p_14181_, float p_14182_) {
++      if (com.mohistmc.LunamuraConfig.enable_fma) {
++         return Math.fma(p_14180_, (p_14182_ - p_14181_), p_14181_);
++      }
+       return p_14181_ + p_14180_ * (p_14182_ - p_14181_);
+    }
+ 
+    public static double m_14139_(double p_14140_, double p_14141_, double p_14142_) {
++      if (com.mohistmc.LunamuraConfig.enable_fma) {
++         return Math.fma(p_14140_, (p_14142_ - p_14141_), p_14141_);
++      }
+       return p_14141_ + p_14140_ * (p_14142_ - p_14141_);
+    }
+ 

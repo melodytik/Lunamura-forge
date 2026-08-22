@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/phys/Vec3.java
++++ b/net/minecraft/world/phys/Vec3.java
+@@ -71,6 +_,9 @@
+    }
+ 
+    public double m_82526_(Vec3 p_82527_) {
++      if (com.mohistmc.LunamuraConfig.enable_fma) {
++         return Math.fma(this.f_82479_, p_82527_.f_82479_, Math.fma(this.f_82480_, p_82527_.f_82480_, this.f_82481_ * p_82527_.f_82481_));
++      }
+       return this.f_82479_ * p_82527_.f_82479_ + this.f_82480_ * p_82527_.f_82480_ + this.f_82481_ * p_82527_.f_82481_;
+    }
+ 
+@@ -109,6 +_,9 @@
+       double d0 = p_82558_.f_82479_ - this.f_82479_;
+       double d1 = p_82558_.f_82480_ - this.f_82480_;
+       double d2 = p_82558_.f_82481_ - this.f_82481_;
++      if (com.mohistmc.LunamuraConfig.enable_fma) {
++         return Math.fma(d0, d0, Math.fma(d1, d1, d2 * d2));
++      }
+       return d0 * d0 + d1 * d1 + d2 * d2;
+    }
+ 
+@@ -116,6 +_,9 @@
+       double d0 = p_82532_ - this.f_82479_;
+       double d1 = p_82533_ - this.f_82480_;
+       double d2 = p_82534_ - this.f_82481_;
++      if (com.mohistmc.LunamuraConfig.enable_fma) {
++         return Math.fma(d0, d0, Math.fma(d1, d1, d2 * d2));
++      }
+       return d0 * d0 + d1 * d1 + d2 * d2;
+    }
+ 
+@@ -144,6 +_,9 @@
+    }
+ 
+    public double m_82556_() {
++      if (com.mohistmc.LunamuraConfig.enable_fma) {
++         return Math.fma(this.f_82479_, this.f_82479_, Math.fma(this.f_82480_, this.f_82480_, this.f_82481_ * this.f_82481_));
++      }
+       return this.f_82479_ * this.f_82479_ + this.f_82480_ * this.f_82480_ + this.f_82481_ * this.f_82481_;
+    }
+ 

@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -66,6 +_,7 @@
+    @Nullable
+    @VisibleForDebug
+    private NaturalSpawner.SpawnState f_8340_;
++   private int lunamuraSpawnCountTick; // Lunamura - throttle mob cap counting
+ 
+    public ServerChunkCache(ServerLevel p_214982_, LevelStorageSource.LevelStorageAccess p_214983_, DataFixer p_214984_, StructureTemplateManager p_214985_, Executor p_214986_, ChunkGenerator p_214987_, int p_214988_, int p_214989_, boolean p_214990_, ChunkProgressListener p_214991_, ChunkStatusUpdateListener p_214992_, Supplier<DimensionDataStorage> p_214993_) {
+       this.f_8329_ = p_214982_;
 @@ -81,6 +_,20 @@
        this.m_8488_();
     }
@@ -90,7 +98,7 @@
        this.f_8331_.close();
        this.f_8325_.close();
     }
-@@ -329,7 +_,7 @@
+@@ -329,8 +_,12 @@
           ProfilerFiller profilerfiller = this.f_8329_.m_46473_();
           profilerfiller.m_6180_("pollingChunks");
           int k = this.f_8329_.m_46469_().m_46215_(GameRules.f_46143_);
@@ -98,7 +106,14 @@
 +         boolean flag1 = f_8329_.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && leveldata.m_6793_() % f_8329_.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
           profilerfiller.m_6180_("naturalSpawnCount");
           int l = this.f_8327_.m_140816_();
-          NaturalSpawner.SpawnState naturalspawner$spawnstate = NaturalSpawner.m_186524_(l, this.f_8329_.m_8583_(), this::m_8370_, new LocalMobCapCalculator(this.f_8325_));
+-         NaturalSpawner.SpawnState naturalspawner$spawnstate = NaturalSpawner.m_186524_(l, this.f_8329_.m_8583_(), this::m_8370_, new LocalMobCapCalculator(this.f_8325_));
+-         this.f_8340_ = naturalspawner$spawnstate;
++         NaturalSpawner.SpawnState naturalspawner$spawnstate;
++         if (this.f_8340_ == null || com.mohistmc.LunamuraConfig.perf_spawn_count_interval <= 1 || ++this.lunamuraSpawnCountTick >= com.mohistmc.LunamuraConfig.perf_spawn_count_interval) {
++            this.lunamuraSpawnCountTick = 0;
++            this.f_8340_ = NaturalSpawner.m_186524_(l, this.f_8329_.m_8583_(), this::m_8370_, new LocalMobCapCalculator(this.f_8325_));
++         }
++         naturalspawner$spawnstate = this.f_8340_;
 @@ -345,15 +_,15 @@
           }
  

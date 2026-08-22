@@ -597,7 +597,7 @@
           return this;
        } else {
           LevelData leveldata = p_9180_.m_6106_();
-@@ -736,25 +_,29 @@
+@@ -736,25 +_,30 @@
           this.f_8906_.m_9829_(new ClientboundChangeDifficultyPacket(leveldata.m_5472_(), leveldata.m_5474_()));
           PlayerList playerlist = this.f_8924_.m_6846_();
           playerlist.m_11289_(this);
@@ -633,6 +633,7 @@
              this.f_8906_.m_9829_(new ClientboundPlayerAbilitiesPacket(this.m_150110_()));
              playerlist.m_11229_(this, p_9180_);
              playerlist.m_11292_(this);
++            this.f_8906_.m_9829_(new ClientboundSetExperiencePacket(this.f_36080_, this.f_36079_, this.f_36078_)); // Lunamura - sync XP on dimension change
 @@ -763,37 +_,64 @@
                 this.f_8906_.m_9829_(new ClientboundUpdateMobEffectPacket(this.m_19879_(), mobeffectinstance));
              }
@@ -1013,21 +1014,27 @@
        Vec3 vec3 = p_9110_.m_90377_(p_9109_);
        super.m_7618_(p_9108_, vec3);
        this.f_8906_.m_9829_(new ClientboundPlayerLookAtPacket(p_9108_, p_9109_, p_9110_));
-@@ -1115,11 +_,13 @@
+@@ -1101,6 +_,7 @@
+    }
+ 
+    public void m_9015_(ServerPlayer p_9016_, boolean p_9017_) {
++       this.keepLevel = p_9016_.keepLevel; // CraftBukkit - SPIGOT-6687: transfer keepLevel to respawned player
+       this.f_244516_ = p_9016_.f_244516_;
+       this.f_143378_ = p_9016_.f_143378_;
+       this.f_244040_ = p_9016_.f_244040_;
+@@ -1115,11 +_,11 @@
           this.f_36080_ = p_9016_.f_36080_;
           this.m_36397_(p_9016_.m_36344_());
           this.f_19819_ = p_9016_.f_19819_;
 -      } else if (this.m_9236_().m_46469_().m_46207_(GameRules.f_46133_) || p_9016_.m_5833_()) {
-+      } else if (p_9016_.m_5833_()) {
++      } else if (this.m_9236_().m_46469_().m_46207_(GameRules.f_46133_) || p_9016_.m_5833_()) {
           this.m_150109_().m_36006_(p_9016_.m_150109_());
 -         this.f_36078_ = p_9016_.f_36078_;
 -         this.f_36079_ = p_9016_.f_36079_;
 -         this.f_36080_ = p_9016_.f_36080_;
-+         if (this.keepLevel) {
-+            this.f_36078_ = p_9016_.f_36078_;
-+            this.f_36079_ = p_9016_.f_36079_;
-+            this.f_36080_ = p_9016_.f_36080_;
-+         }
++         this.f_36078_ = p_9016_.f_36078_;
++         this.f_36079_ = p_9016_.f_36079_;
++         this.f_36080_ = p_9016_.f_36080_;
           this.m_36397_(p_9016_.m_36344_());
        }
  
@@ -1165,7 +1172,7 @@
     }
  
     public void m_6674_(InteractionHand p_9031_) {
-@@ -1400,29 +_,51 @@
+@@ -1400,29 +_,53 @@
        return this.f_8909_;
     }
  
@@ -1200,6 +1207,8 @@
 +         this.f_8941_.m_9260_(p_9000_);
           this.f_8924_.m_6846_().m_11229_(this, p_9000_);
           this.f_8924_.m_6846_().m_11292_(this);
++         this.f_8906_.m_9829_(new ClientboundSetExperiencePacket(this.f_36080_, this.f_36079_, this.f_36078_)); // Lunamura - sync XP on world/teleport change
++         this.lastSentExp = -1;
 +         this.m_6885_();
 +         for (MobEffectInstance mobEffect : this.m_21220_()) {
 +            this.f_8906_.m_9829_(new ClientboundUpdateMobEffectPacket(this.m_19879_(), mobEffect));

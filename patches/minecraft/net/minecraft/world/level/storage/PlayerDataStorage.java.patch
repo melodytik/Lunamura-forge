@@ -18,22 +18,42 @@
  import org.slf4j.Logger;
  
  public class PlayerDataStorage {
-@@ -24,6 +_,7 @@
+@@ -24,17 +_,22 @@
     }
  
-    public void m_78433_(Player p_78434_) {
+-   public void m_78433_(Player p_78434_) {
+-      try {
+-         CompoundTag compoundtag = p_78434_.m_20240_(new CompoundTag());
+-         File file1 = File.createTempFile(p_78434_.m_20149_() + "-", ".dat", this.f_78427_);
+-         NbtIo.m_128944_(compoundtag, file1);
+-         File file2 = new File(this.f_78427_, p_78434_.m_20149_() + ".dat");
+-         File file3 = new File(this.f_78427_, p_78434_.m_20149_() + ".dat_old");
+-         Util.m_137462_(file2, file1, file3);
+-      } catch (Exception exception) {
+-         f_78426_.warn("Failed to save player data for {}", (Object)p_78434_.m_7755_().getString());
+-      }
+-
+-   }
++   public void m_78433_(Player p_78434_) {
 +      if (org.spigotmc.SpigotConfig.disablePlayerDataSaving) return; // Spigot
-       try {
-          CompoundTag compoundtag = p_78434_.m_20240_(new CompoundTag());
-          File file1 = File.createTempFile(p_78434_.m_20149_() + "-", ".dat", this.f_78427_);
-@@ -31,6 +_,7 @@
-          File file2 = new File(this.f_78427_, p_78434_.m_20149_() + ".dat");
-          File file3 = new File(this.f_78427_, p_78434_.m_20149_() + ".dat_old");
-          Util.m_137462_(file2, file1, file3);
++      try {
++         CompoundTag compoundtag = p_78434_.m_20240_(new CompoundTag());
 +         net.minecraftforge.event.ForgeEventFactory.firePlayerSavingEvent(p_78434_, f_78427_, p_78434_.m_20149_());
-       } catch (Exception exception) {
-          f_78426_.warn("Failed to save player data for {}", (Object)p_78434_.m_7755_().getString());
-       }
++         if (com.mohistmc.LunamuraConfig.perf_async_player_save) {
++            com.mohistmc.LunamuraAsyncSave.savePlayerData(compoundtag, this.f_78427_, p_78434_.m_20149_(), p_78434_.m_7755_().getString());
++         } else {
++            File file1 = File.createTempFile(p_78434_.m_20149_() + "-", ".dat", this.f_78427_);
++            NbtIo.m_128944_(compoundtag, file1);
++            File file2 = new File(this.f_78427_, p_78434_.m_20149_() + ".dat");
++            File file3 = new File(this.f_78427_, p_78434_.m_20149_() + ".dat_old");
++            Util.m_137462_(file2, file1, file3);
++         }
++      } catch (Exception exception) {
++         f_78426_.warn("Failed to save player data for {}", (Object)p_78434_.m_7755_().getString());
++      }
++   }
+ 
+    @Nullable
 @@ -43,17 +_,46 @@
  
        try {
@@ -108,3 +128,4 @@
 +   }
 +   // CraftBukkit end
  }
+

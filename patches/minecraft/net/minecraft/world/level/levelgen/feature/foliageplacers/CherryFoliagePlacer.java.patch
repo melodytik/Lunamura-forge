@@ -1,0 +1,33 @@
+--- a/net/minecraft/world/level/levelgen/feature/foliageplacers/CherryFoliagePlacer.java
++++ b/net/minecraft/world/level/levelgen/feature/foliageplacers/CherryFoliagePlacer.java
+@@ -11,15 +_,19 @@
+ public class CherryFoliagePlacer extends FoliagePlacer {
+    public static final Codec<CherryFoliagePlacer> f_271259_ = RecordCodecBuilder.create((p_273246_) -> {
+-      return m_68573_(p_273246_).and(p_273246_.group(IntProvider.m_146545_(4, 16).fieldOf("height").forGetter((p_273527_) -> {
+-         return p_273527_.f_271102_;
+-      }), Codec.floatRange(0.0F, 1.0F).fieldOf("wide_bottom_layer_hole_chance").forGetter((p_273760_) -> {
+-         return p_273760_.f_271179_;
+-      }), Codec.floatRange(0.0F, 1.0F).fieldOf("corner_hole_chance").forGetter((p_273020_) -> {
+-         return p_273020_.f_271179_;
+-      }), Codec.floatRange(0.0F, 1.0F).fieldOf("hanging_leaves_chance").forGetter((p_273148_) -> {
+-         return p_273148_.f_271143_;
+-      }), Codec.floatRange(0.0F, 1.0F).fieldOf("hanging_leaves_extension_chance").forGetter((p_273098_) -> {
+-         return p_273098_.f_271510_;
+-      }))).apply(p_273246_, CherryFoliagePlacer::new);
++      return p_273246_.group(IntProvider.m_146545_(0, 16).fieldOf("radius").forGetter((p_161449_) -> {
++         return p_161449_.f_68520_;
++      }), IntProvider.m_146545_(0, 16).fieldOf("offset").forGetter((p_161447_) -> {
++         return p_161447_.f_68521_;
++      }), IntProvider.m_146545_(4, 16).fieldOf("height").forGetter((p_273527_) -> {
++         return p_273527_.f_271102_;
++      }), Codec.floatRange(0.0F, 1.0F).fieldOf("wide_bottom_layer_hole_chance").forGetter((p_273760_) -> {
++         return p_273760_.f_271179_;
++      }), Codec.floatRange(0.0F, 1.0F).fieldOf("corner_hole_chance").forGetter((p_273020_) -> {
++         return p_273020_.f_271179_;
++      }), Codec.floatRange(0.0F, 1.0F).fieldOf("hanging_leaves_chance").forGetter((p_273148_) -> {
++         return p_273148_.f_271143_;
++      }), Codec.floatRange(0.0F, 1.0F).fieldOf("hanging_leaves_extension_chance").forGetter((p_273098_) -> {
++         return p_273098_.f_271510_;
++      })).apply(p_273246_, CherryFoliagePlacer::new);
+    });
+    private final IntProvider f_271102_;

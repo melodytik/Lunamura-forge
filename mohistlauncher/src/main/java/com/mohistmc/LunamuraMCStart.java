@@ -60,7 +60,7 @@ public class LunamuraMCStart {
         if (i18n.isCN()) {
             Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler());
         }
-        if (LunamuraConfigUtil.INSTALLATIONFINISHED() && LunamuraConfigUtil.aBoolean("lunamura.show_logo", true)) {
+        if (LunamuraConfigUtil.INSTALLATIONFINISHED()) {
             System.out.printf("%s - %s, Java(%s) %s PID: %s%n",
                     i18n.as("lunamura.launch.welcomemessage"),
                     getVersion(),
