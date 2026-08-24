@@ -454,6 +454,42 @@
        if (!this.f_151503_.isEmpty()) {
           this.f_151512_.addAll(this.f_151503_);
           this.f_151503_.clear();
+@@ -410,12 +_,27 @@
+       Iterator<TickingBlockEntity> iterator = this.f_151512_.iterator();
+ 
+-      while(iterator.hasNext()) {
+-         TickingBlockEntity tickingblockentity = iterator.next();
+-         if (tickingblockentity.m_142220_()) {
+-            iterator.remove();
+-         } else if (this.m_220393_(tickingblockentity.m_142689_())) {
+-            tickingblockentity.m_142224_();
+-         }
+-      }
++      long lunamuraLastChunk = Long.MIN_VALUE;
++      boolean lunamuraLastShouldTick = true;
++      while(iterator.hasNext()) {
++         TickingBlockEntity tickingblockentity = iterator.next();
++         if (tickingblockentity.m_142220_()) {
++            iterator.remove();
++            continue;
++         }
++         boolean lunamuraShouldTick;
++         if (com.mohistmc.LunamuraConfig.perf_blockentity_tick_cache) {
++            long lunamuraChunk = ChunkPos.m_151388_(tickingblockentity.m_142689_());
++            if (lunamuraChunk != lunamuraLastChunk) {
++               lunamuraLastChunk = lunamuraChunk;
++               lunamuraLastShouldTick = this.m_183438_(lunamuraChunk);
++            }
++            lunamuraShouldTick = lunamuraLastShouldTick;
++         } else {
++            lunamuraShouldTick = this.m_220393_(tickingblockentity.m_142689_());
++         }
++         if (lunamuraShouldTick) {
++            tickingblockentity.m_142224_();
++         }
++      }
+ 
+       this.f_151504_ = false;
 @@ -424,12 +_,12 @@
  
     public <T extends Entity> void m_46653_(Consumer<T> p_46654_, T p_46655_) {

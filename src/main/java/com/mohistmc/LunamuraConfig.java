@@ -192,6 +192,7 @@ public class LunamuraConfig {
     public static int perf_spawn_count_interval;
     public static boolean perf_async_player_save;
     public static int stop_save_timeout_ms;
+    public static boolean perf_blockentity_tick_cache;
 
     // CatServer performance/robustness ports (config key prefix: cat.)
     public static boolean catActivationNullGuard;
@@ -248,6 +249,7 @@ public class LunamuraConfig {
         perf_spawn_count_interval = getInt("lunamura.perf_spawn_count_interval", 5);
         perf_async_player_save = getBoolean("lunamura.perf_async_player_save", true);
         stop_save_timeout_ms = getInt("lunamura.stop_save_timeout_ms", 10000);
+        perf_blockentity_tick_cache = getBoolean("lunamura.perf_blockentity_tick_cache", true);
 
         // CatServer ports (config key prefix: cat.)
         catActivationNullGuard = getBoolean("cat.activation_null_guard", true);

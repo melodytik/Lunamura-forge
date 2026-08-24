@@ -7,9 +7,10 @@
 [![Forge](https://img.shields.io/badge/Forge-1.20.1--47.4.22-brightgreen?logo=curseforge&logoColor=white)](https://files.minecraftforge.net/)
 [![JDK](https://img.shields.io/badge/JDK-17-brightgreen?logo=openjdk&logoColor=white)](https://adoptium.net/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.12.1-brightgreen?logo=gradle&logoColor=white)](https://docs.gradle.org/)
+[![Version](https://img.shields.io/badge/Version-1.2.0-blue.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 
-**Forge 模组 + Bukkit/Spigot/Paper 插件双兼容 &middot; 内置十余项性能与稳定性优化**
+**Forge 模组 + Bukkit/Spigot/Paper 插件双兼容 &middot; 内置 20+ 项性能与稳定性优化**
 
 
 [![](https://bstats.org/signatures/server-implementation/Lunamura.svg)](https://bstats.org/plugin/server-implementation/Lunamura/33225)
@@ -27,7 +28,8 @@
 
 ## 简介 / Introduction
 
-Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高性能混合服务端。在保留 Forge 模组 + Bukkit 插件双兼容能力的基础上，移植了 **Leaf** 服务端的多项性能优化以及 **CatServer** 的稳定性补丁，并重写了 **PROXY Protocol** 支持，使其能稳定适配 FRP / HAProxy / Nginx 等反向代理场景。
+Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高性能混合服务端。在保留 Forge 模组 + Bukkit 插件双兼容能力的基础上，移植了 **Leaf** 服务端的多项性能优化与 **CatServer** 的稳定性补丁，并在此基础上**原创设计**了多项针对混合端主线程压力的优化，同时重写了 **PROXY Protocol** 支持，使其能稳定适配 FRP / HAProxy / Nginx 等反向代理场景。
+同时原创了一部分优化大型科技模组的设计，如mek、ae的优化方案，经测试，优化效果巨大（可见下文）
 
 ---
 
@@ -75,6 +77,7 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 
 | 配置键 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
+| `lunamura.perf_blockentity_tick_cache` | boolean | `true` | **方块实体 tick 调度缓存**：缓存上一区块的 `shouldTickBlocksAt` 结果，`getLevel` 查询从"每方块实体一次"降到"每区块一次"（实测约 5 万方块实体下减少 97% 调度查询，TPS 提升约 40%） |
 | `lunamura.perf_spawn_count_interval` | int | `5` | **刷怪配额计数节流**：每 N tick 才重算一次 mob cap 计数，中间复用缓存结果，省去每 tick 的全实体遍历（设 `1` 恢复原版行为） |
 | `lunamura.perf_async_player_save` | boolean | `true` | **异步玩家数据保存**：主线程只做 NBT 序列化（快照），gzip 压缩 + 写盘下放后台单线程，关服时 shutdown hook 兜底 flush |
 | `lunamura.perf_async_save_json` | boolean | `true` | **异步存档 JSON**：op/ban/whitelist 等用户列表的序列化留主线程，写盘下放后台单线程串行（避免并发写文件） |
@@ -148,7 +151,7 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 ### 构建产物
 
 ```
-projects/mohist/build/libs/lunamura-1.20.1-1.0.0-server.jar   (~136 MB，唯一分发文件)
+projects/mohist/build/libs/lunamura-1.20.1-1.2.0-server.jar   (~136 MB，唯一分发文件)
 ```
 
 ---
@@ -156,7 +159,7 @@ projects/mohist/build/libs/lunamura-1.20.1-1.0.0-server.jar   (~136 MB，唯一�
 ## 运行 / Run
 
 ```bash
-java -jar lunamura-1.20.1-1.0.0-server.jar
+java -jar lunamura-1.20.1-1.2.0-server.jar
 ```
 
 首次启动会自动完成安装（解压内置库并应用二进制补丁），随后即可正常进入。
@@ -197,7 +200,7 @@ lunamura:
 ### 性能优化来源
 
 - **[Leaf](https://github.com/Winds-Studio/Leaf)** — Paper 系高性能服务端分支，本项目的性能优化主要移植来源
-- **[CatServer](https://github.com/Luohayu/CatServer)** — Forge 混合端前辈，本项目的稳定性补丁与插件字节码兼容方案来源
+- **[CatServer](https://github.com/Luohuayu/CatServer)** — Forge 混合端前辈，本项目的稳定性补丁与插件字节码兼容方案来源
 
 ### 上游生态
 
