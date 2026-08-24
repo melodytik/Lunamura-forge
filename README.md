@@ -29,7 +29,8 @@
 ## 简介 / Introduction
 
 Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高性能混合服务端。在保留 Forge 模组 + Bukkit 插件双兼容能力的基础上，移植了 **Leaf** 服务端的多项性能优化与 **CatServer** 的稳定性补丁，并在此基础上**原创设计**了多项针对混合端主线程压力的优化，同时重写了 **PROXY Protocol** 支持，使其能稳定适配 FRP / HAProxy / Nginx 等反向代理场景。
-同时原创了一部分优化大型科技模组的设计，如mek、ae的优化方案，经测试，优化效果巨大（可见下文）
+做了一些大型科技模组针对性的优化，如mek、ae的优化方案
+对大型科技模组堆大量机器的情况下做了特别优化（经测试效果极佳）↓可见下文↓
 
 ---
 
