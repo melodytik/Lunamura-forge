@@ -47,7 +47,7 @@
 -      this.m_6274_().m_21865_((ServerLevel)this.m_9236_(), this);
 -      this.m_9236_().m_46473_().m_7238_();
 +      // Lunamura start
-+      if (this.m_9236_().spigotConfig.tickInactiveVillagers && OptVillager.getInstance().isLobotomized(this)) {
++      if (com.mohistmc.LunamuraConfig.perf_villager_brain_offload && OptVillager.getInstance().isLobotomized(this)) {
 +         this.m_6274_().m_21865_((ServerLevel)this.m_9236_(), this);
 +      }
 +      // Lunamura end

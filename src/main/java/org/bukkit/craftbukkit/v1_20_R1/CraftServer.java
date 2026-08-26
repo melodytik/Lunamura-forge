@@ -1026,6 +1026,16 @@ public final class CraftServer implements Server {
     public World createWorld(WorldCreator creator) {
         Preconditions.checkState(console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
         Validate.notNull(creator, "Creator may not be null");
+        // Lunamura start - clear stale world-creation static state (e.g. from a previous createWorld
+        // that failed before ServerLevel's constructor cleanup ran), so it can never leak into the
+        // next world created by another tool (Multiverse / Multiworld mod). The Level.generator /
+        // Level.environment / Level.biomeProvider statics are cleared inside the ServerLevel
+        // constructor itself (see ServerLevel.java.patch) since they are not visible from here.
+        Level2LevelStem.bukkit = null;
+        Level2LevelStem.bukkit_name = null;
+        Level2LevelStem.initPluginWorld.set(false);
+        Level2LevelStem.worldPath_cache = null;
+        // Lunamura end
         Level2LevelStem.initPluginWorld.set(true); // Lunamura
         String name = creator.name();
         ChunkGenerator generator = creator.generator();

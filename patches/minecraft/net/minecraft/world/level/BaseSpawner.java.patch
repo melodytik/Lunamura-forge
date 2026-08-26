@@ -25,7 +25,7 @@
     private double f_45445_;
     private double f_45446_;
     public int f_45447_ = 200;
-@@ -46,6 +_,7 @@
+@@ -46,8 +_,9 @@
  
     public void m_253197_(EntityType<?> p_253682_, @Nullable Level p_254041_, RandomSource p_254221_, BlockPos p_254050_) {
        this.m_253144_(p_254041_, p_254221_, p_254050_).m_186567_().m_128359_("id", BuiltInRegistries.f_256780_.m_7981_(p_253682_).toString());
@@ -33,6 +33,9 @@
     }
  
     private boolean m_151343_(Level p_151344_, BlockPos p_151345_) {
+-      return p_151344_.m_45914_((double)p_151345_.m_123341_() + 0.5D, (double)p_151345_.m_123342_() + 0.5D, (double)p_151345_.m_123343_() + 0.5D, (double)this.f_45452_);
++      return com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex.hasNearbyAlivePlayer(p_151344_, (double)p_151345_.m_123341_() + 0.5D, (double)p_151345_.m_123342_() + 0.5D, (double)p_151345_.m_123343_() + 0.5D, (double)this.f_45452_);
+    }
 @@ -131,16 +_,28 @@
                    entity.m_7678_(entity.m_20185_(), entity.m_20186_(), entity.m_20189_(), randomsource.m_188501_() * 360.0F, 0.0F);
                    if (entity instanceof Mob) {

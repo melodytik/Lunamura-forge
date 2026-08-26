@@ -21,6 +21,7 @@ public class PluginHooks {
         Plugin plugin = e.getPlugin();
         if (plugin.getName().equals("PlaceholderAPI")){
             LunamuraPapiHook.init();
+            new ForgeTPSExpansion().register(); // Lunamura - %forge_mspt% / %forge_tps%
             LunamuraMC.LOGGER.info("Hook PlaceholderAPI!");
         }
     }

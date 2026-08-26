@@ -101,11 +101,10 @@
  
        return compoundtag;
     }
-@@ -72,4 +_,26 @@
+@@ -72,4 +_,25 @@
  
        return astring;
     }
-+
 +   public File getPlayerDataFolder() {
 +      return f_78427_;
 +   }
@@ -128,4 +127,3 @@
 +   }
 +   // CraftBukkit end
  }
-

@@ -9,16 +9,21 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 
 /**
- * @author Mgazul by LunamuraMC
- * @date 2023/8/12 5:23:34
+ * Villager brain offload (源自 Mohist 1.20.1 com.mohistmc.optimizations.OptVillager).
+ * 村民被"卡住"（乘客 / 无法移动）时，跳过 Brain.tick，仅每 20 tick 唤醒一次，降低村民 AI 开销。
+ * 修复：静态单例（原每次 new 导致 notLobotomizedCount 重置、600 tick 降频永不生效）；
+ *       使用 BlockState.blocksMotion() 替代已废弃的 Block.hasCollision。
  */
 public class OptVillager {
 
+    private static final OptVillager INSTANCE = new OptVillager();
+
     public static OptVillager getInstance() {
-        return new OptVillager();
+        return INSTANCE;
     }
 
     private boolean isLobotomized = false;
@@ -29,9 +34,8 @@ public class OptVillager {
     }
 
     private boolean checkLobotomize(Villager villager) {
-        // Check half as often if not lobotomized for the last 3+ consecutive checks
+        // 连续 3+ 次检查都"未卡住"则降低检查频率（每 600 tick 一次），减少开销
         if (villager.tickCount % (this.notLobotomizedCount > 3 ? 600 : 300) == 0) {
-            // Offset Y for short blocks like dirt_path/farmland
             this.isLobotomized = villager.isPassenger() || !this.canTravel(BlockPos.containing(villager.getX(), villager.getY() + 0.0625D, villager.getZ()), villager);
 
             if (this.isLobotomized) {
@@ -43,6 +47,7 @@ public class OptVillager {
 
         return this.isLobotomized;
     }
+
     private boolean canTravel(BlockPos center, Villager villager) {
         ChunkAccess chunk = ChunkManager.getChunkNow(villager.level(), center);
         if (chunk == null) {
@@ -66,26 +71,23 @@ public class OptVillager {
             return false;
         }
 
-        Block bottom = chunk.getBlockState(mutable).getBlock();
+        BlockState state = chunk.getBlockState(mutable);
+        Block bottom = state.getBlock();
         if (bottom instanceof BedBlock) {
-            // Allows iron farms to function normally
+            // 床方块视为可移动，保证铁农场正常
             return true;
         }
 
         if (this.hasCollisionAt(chunk, mutable.move(Direction.UP))) {
-            // Early return if the top block has collision.
+            // 头顶有碰撞则无法进入该格
             return false;
         }
 
-        // The villager can only jump if:
-        // - There is no collision above the villager
-        // - There is no collision above the top block
-        // - The bottom block is short enough to jump on
         boolean isTallBlock = bottom instanceof FenceBlock || bottom instanceof FenceGateBlock || bottom instanceof WallBlock;
-        return !bottom.hasCollision || (canJump && !isTallBlock && !this.hasCollisionAt(chunk, mutable.move(Direction.UP)));
+        return !state.blocksMotion() || (canJump && !isTallBlock && !this.hasCollisionAt(chunk, mutable.move(Direction.UP)));
     }
 
     private boolean hasCollisionAt(ChunkAccess chunk, BlockPos pos) {
-        return chunk.getBlockState(pos).getBlock().hasCollision;
+        return chunk.getBlockState(pos).blocksMotion();
     }
 }

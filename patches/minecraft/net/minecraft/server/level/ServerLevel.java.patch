@@ -307,7 +307,7 @@
           this.f_8559_ = new EndDragonFight(this, i, p_214999_.m_129910_().m_6564_());
        } else {
           this.f_8559_ = null;
-@@ -240,9 +_,15 @@
+@@ -240,9 +_,29 @@
              return new RandomSequences(i);
           }, "random_sequences");
        });
@@ -317,6 +317,20 @@
 +         K.setWorld(this);
 +      }
 +      this.initCapabilities();
++      // Lunamura start - Clear world-creation static state to prevent cross-world leakage.
++      // Level.generator/environment/biomeProvider are written by CraftServer.createWorld via
++      // Level.craftWorldData and consumed by this constructor but were never reset. When another
++      // world-management tool (e.g. the Multiworld mod) creates a dimension afterwards without
++      // going through CraftServer.createWorld, the stale generator/biomeProvider/environment are
++      // applied to the new world producing broken terrain (e.g. ores/stones on the surface).
++      Level.generator = null;
++      Level.environment = null;
++      Level.biomeProvider = null;
++      Level2LevelStem.bukkit = null;
++      Level2LevelStem.bukkit_name = null;
++      Level2LevelStem.initPluginWorld.set(false);
++      Level2LevelStem.worldPath_cache = null;
++      // Lunamura end
     }
  
 -   /** @deprecated */
@@ -516,19 +530,22 @@
     }
  
     public void m_8886_() {
-@@ -674,6 +_,15 @@
+@@ -674,6 +_,18 @@
     }
  
     public void m_8647_(Entity p_8648_) {
-+      // Spigot start
++      // Spigot + Lunamura ActivationRange 2.0 start
++      p_8648_.activationRangeFullTickCount++;
 +      if (!ActivationRange.checkIfActive(p_8648_)) {
++         p_8648_.activationRangeInactive = true;
 +         p_8648_.f_19797_++;
 +         if (p_8648_.canUpdate()) {
 +            p_8648_.inactiveTick();
 +         }
 +         return;
 +      }
-+      // Spigot end
++      p_8648_.activationRangeInactive = false;
++      // Spigot + Lunamura ActivationRange 2.0 end
        p_8648_.m_146867_();
        ProfilerFiller profilerfiller = this.m_46473_();
        ++p_8648_.f_19797_;

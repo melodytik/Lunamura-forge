@@ -245,7 +245,7 @@
     }
  
     public boolean m_5776_() {
-@@ -185,12 +_,42 @@
+@@ -185,12 +_,43 @@
           return chunkaccess;
        }
     }
@@ -262,6 +262,7 @@
     }
  
 +   public AtomicBoolean setBlock$captured = new AtomicBoolean(false);
++   public AtomicBoolean lunamura$mekCompatActive = new AtomicBoolean(false);
 +
     public boolean m_6933_(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {
 +      {
@@ -289,7 +290,7 @@
        if (this.m_151570_(p_46605_)) {
           return false;
        } else if (!this.f_46443_ && this.m_46659_()) {
-@@ -198,11 +_,59 @@
+@@ -198,11 +_,72 @@
        } else {
           LevelChunk levelchunk = this.m_46745_(p_46605_);
           Block block = p_46606_.m_60734_();
@@ -313,6 +314,19 @@
 +         int oldLight = old.getLightEmission(this, p_46605_);
 +         int oldOpacity = old.m_60739_(this, p_46605_);
 +         levelchunk.lunamura$doPlace.set((p_46607_ & 1024) == 0);
++      // Lunamura start - Mekanism tier-installer upgrade compat (bounding blocks)
++      if (!this.f_46443_ && !this.lunamura$mekCompatActive.getAndSet(true)) {
++         try {
++            if (com.mohistmc.LunamuraConfig.lunamuraMekanismUpgradeBoundingFix) {
++               com.mohistmc.optimizations.LunamuraMekanismCompat.placeUpgradeBoundingBlocks(this, p_46605_, p_46606_, old);
++            }
++         } catch (Throwable t) {
++            // Compatibility code must never break world logic
++         } finally {
++            this.lunamura$mekCompatActive.set(false);
++         }
++      }
++      // Lunamura end
           BlockState blockstate = levelchunk.m_6978_(p_46605_, p_46606_, (p_46607_ & 64) != 0);
 +
           if (blockstate == null) {

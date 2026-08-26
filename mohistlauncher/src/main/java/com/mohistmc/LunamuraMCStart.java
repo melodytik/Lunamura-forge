@@ -69,12 +69,12 @@ public class LunamuraMCStart {
                     ManagementFactory.getRuntimeMXBean().getName().split("@")[0]
             );
             if (i18n.isCN()) {
-                System.out.println("+------------------------------------------------------+");
-                System.out.println("|                                                      |");
-                System.out.println("| 版本修改：OoOooo0518(nyamura）qq：3063276667         |");
-                System.out.println("| 爱发电：https://ifdian.net/a/melodytik               |");
-                System.out.println("|                                                      |");
-                System.out.println("+------------------------------------------------------+");
+                System.out.println("+-----------------------------------------------+");
+                System.out.println("|                                              |");
+                System.out.println("|  版本修改：OoOooo0518(nyamura）qq：3063276667|");
+                System.out.println("|  爱发电：https://ifdian.net/a/melodytik      |");
+                System.out.println("|                                              |");
+                System.out.println("+-----------------------------------------------+");
             }
         }
 

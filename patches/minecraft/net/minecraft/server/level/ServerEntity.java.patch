@@ -20,7 +20,7 @@
  import net.minecraft.util.Mth;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EquipmentSlot;
-@@ -38,6 +_,8 @@
+@@ -38,6 +_,28 @@
  import net.minecraft.world.item.MapItem;
  import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
  import net.minecraft.world.phys.Vec3;
@@ -28,7 +28,28 @@
 +import org.bukkit.event.player.PlayerVelocityEvent;
  import org.slf4j.Logger;
  
- public class ServerEntity {
+-public class ServerEntity {
++public class ServerEntity implements com.mohistmc.optimizations.entitytracking.EntityTrackerEntryExtension {
++   public void vmp$tickAlways() {
++      this.f_8521_ = this.f_8521_ - (this.f_8521_ % this.f_8511_) + this.f_8511_;
++      this.f_8510_.f_19812_ = true;
++      this.m_8533_();
++   }
++
++   public void vmp$syncEntityData() {
++      this.f_8521_ = this.f_8521_ + 1;
++      if (this.f_8521_ % this.f_8511_ == 0) {
++         this.m_8543_();
++      }
++   }
++
++   public void vmp$updatePassengers() {
++      List<Entity> list = this.f_8510_.m_20197_();
++      if (!list.equals(this.f_8523_)) {
++         this.f_8513_.accept(new ClientboundSetPassengersPacket(this.f_8510_));
++         this.f_8523_ = list;
++      }
++   }
 @@ -60,8 +_,16 @@
     private boolean f_8525_;
     @Nullable

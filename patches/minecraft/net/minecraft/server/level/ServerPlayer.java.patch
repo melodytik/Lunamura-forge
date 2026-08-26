@@ -127,7 +127,7 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.portal.PortalInfo;
  import net.minecraft.world.level.storage.LevelData;
-@@ -147,10 +_,51 @@
+@@ -147,10 +_,74 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Score;
@@ -176,7 +176,31 @@
 +import net.minecraft.world.entity.Entity.RemovalReason;
 +import net.minecraft.world.entity.player.Player.BedSleepingProblem;
 +
- public class ServerPlayer extends Player {
+-public class ServerPlayer extends Player {
++public class ServerPlayer extends Player implements com.mohistmc.optimizations.entitytracking.ServerPlayerEntityExtension {
++   private double lunamura$trackPrevX = Double.NaN;
++   private double lunamura$trackPrevY = Double.NaN;
++   private double lunamura$trackPrevZ = Double.NaN;
++
++   public boolean vmpTracking$isPositionUpdated() {
++      net.minecraft.world.phys.Vec3 v = this.m_20182_();
++      return this.lunamura$trackPrevX != v.f_82479_ || this.lunamura$trackPrevY != v.f_82480_ || this.lunamura$trackPrevZ != v.f_82481_;
++   }
++
++   public void vmpTracking$updatePosition() {
++      net.minecraft.world.phys.Vec3 v = this.m_20182_();
++      this.lunamura$trackPrevX = v.f_82479_;
++      this.lunamura$trackPrevY = v.f_82480_;
++      this.lunamura$trackPrevZ = v.f_82481_;
++   }
++
++   public boolean vmpTracking$isTeleport() {
++      if (Double.isNaN(this.lunamura$trackPrevX)) return false;
++      net.minecraft.world.phys.Vec3 v = this.m_20182_();
++      double dx = v.f_82479_ - this.lunamura$trackPrevX;
++      double dz = v.f_82481_ - this.lunamura$trackPrevZ;
++      return dx * dx + dz * dz > 1024.0;
++   }
     private static final Logger f_8907_ = LogUtils.getLogger();
     private static final int f_143381_ = 32;
 @@ -197,7 +_,7 @@

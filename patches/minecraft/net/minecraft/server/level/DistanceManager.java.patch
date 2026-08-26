@@ -1,14 +1,15 @@
 --- a/net/minecraft/server/level/DistanceManager.java
 +++ b/net/minecraft/server/level/DistanceManager.java
-@@ -12,6 +_,7 @@
+@@ -12,6 +_,8 @@
  import it.unimi.dsi.fastutil.longs.Long2IntMaps;
  import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
++import it.unimi.dsi.fastutil.longs.Long2IntLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 +import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-@@ -23,10 +_,12 @@
+@@ -23,10 +_,13 @@
  import java.io.FileOutputStream;
  import java.io.IOException;
  import java.nio.charset.StandardCharsets;
@@ -21,15 +22,101 @@
  import javax.annotation.Nullable;
  import net.minecraft.core.SectionPos;
  import net.minecraft.util.SortedArraySet;
-@@ -54,6 +_,8 @@
++import com.mohistmc.optimizations.ticketpropagator.Delayed8WayDistancePropagator2D;
+@@ -54,6 +_,10 @@
     private long f_140771_;
     private int f_183902_ = 10;
  
 +   private final Long2ObjectOpenHashMap<SortedArraySet<Ticket<?>>> forcedTickets = new Long2ObjectOpenHashMap<>();
++   private Long2IntLinkedOpenHashMap ticketLevelUpdates;
++   private Delayed8WayDistancePropagator2D ticketLevelPropagator;
 +
     protected DistanceManager(Executor p_140774_, Executor p_140775_) {
        ProcessorHandle<Runnable> processorhandle = ProcessorHandle.m_18714_("player ticket throttler", p_140775_::execute);
        ChunkTaskPriorityQueueSorter chunktaskpriorityqueuesorter = new ChunkTaskPriorityQueueSorter(ImmutableList.of(processorhandle), p_140774_, 4);
+@@ -60,8 +_,34 @@
+       this.f_140766_ = chunktaskpriorityqueuesorter;
+       this.f_140767_ = chunktaskpriorityqueuesorter.m_140604_(processorhandle, true);
+       this.f_140768_ = chunktaskpriorityqueuesorter.m_140567_(processorhandle);
+-      this.f_140770_ = p_140775_;
+-   }
++      this.f_140770_ = p_140775_;
++      this.ticketLevelUpdates = new Long2IntLinkedOpenHashMap() {
++         @Override
++         protected void rehash(int newN) {
++            if (newN < this.n) {
++               return;
++            }
++            super.rehash(newN);
++         }
++      };
++      this.ticketLevelPropagator = new Delayed8WayDistancePropagator2D(
++            (long coordinate, byte oldLevel, byte newLevel) -> {
++               this.ticketLevelUpdates.putAndMoveToLast(coordinate, convertBetweenTicketLevels(newLevel));
++            }
++      );
++   }
++
++   private static int convertBetweenTicketLevels(int level) {
++      return ChunkLevel.f_286967_ - level + 1;
++   }
++
++   protected final void updateTicketLevel(long coordinate, int ticketLevel) {
++      if (ticketLevel > ChunkLevel.f_286967_) {
++         this.ticketLevelPropagator.removeSource(coordinate);
++      } else {
++         this.ticketLevelPropagator.setSource(coordinate, convertBetweenTicketLevels(ticketLevel));
++      }
++   }
+ 
+    protected void m_140776_() {
+       ++this.f_140771_;
+@@ -82,7 +_,11 @@
+          }
+ 
+          if (flag) {
+-            this.f_140762_.m_140715_(entry.getLongKey(), m_140797_(entry.getValue()), false);
++            if (com.mohistmc.LunamuraConfig.perf_ticketpropagator) {
++               this.updateTicketLevel(entry.getLongKey(), m_140797_(entry.getValue()));
++            } else {
++               this.f_140762_.m_140715_(entry.getLongKey(), m_140797_(entry.getValue()), false);
++            }
+          }
+ 
+          if (entry.getValue().isEmpty()) {
+@@ -109,5 +_,31 @@
+       this.f_183901_.m_184145_();
+       this.f_140764_.m_6410_();
+-      int i = Integer.MAX_VALUE - this.f_140762_.m_140877_(Integer.MAX_VALUE);
++      int i;
++      if (com.mohistmc.LunamuraConfig.perf_ticketpropagator) {
++         boolean flag2 = this.ticketLevelPropagator.propagateUpdates();
++         while (!this.ticketLevelUpdates.isEmpty()) {
++            long key = this.ticketLevelUpdates.firstLongKey();
++            int newLevel = this.ticketLevelUpdates.removeFirstInt();
++            ChunkHolder chunkholder = this.m_7316_(key);
++            int currentLevel = chunkholder == null ? ChunkLevel.f_286967_ + 1 : chunkholder.m_140093_();
++            if (newLevel == currentLevel) {
++               continue;
++            }
++
++            chunkholder = this.m_7288_(key, newLevel, chunkholder, currentLevel);
++            if (chunkholder == null) {
++               if (newLevel <= ChunkLevel.f_286967_) {
++                  throw new IllegalStateException("Chunk holder not created");
++               }
++               continue;
++            }
++
++            this.f_140765_.add(chunkholder);
++         }
++
++         i = flag2 ? 1 : 0;
++      } else {
++         i = Integer.MAX_VALUE - this.f_140762_.m_140877_(Integer.MAX_VALUE);
++      }
+       boolean flag = i != 0;
+       if (flag) {
 @@ -114,9 +_,11 @@
        }
  
@@ -52,8 +139,13 @@
     void m_140784_(long p_140785_, Ticket<?> p_140786_) {
        SortedArraySet<Ticket<?>> sortedarrayset = this.m_140857_(p_140785_);
        int i = m_140797_(sortedarrayset);
-@@ -159,11 +_,25 @@
-          this.f_140762_.m_140715_(p_140785_, p_140786_.m_9433_(), true);
+@@ -159,11 +_,29 @@
+-         this.f_140762_.m_140715_(p_140785_, p_140786_.m_9433_(), true);
++         if (com.mohistmc.LunamuraConfig.perf_ticketpropagator) {
++            this.updateTicketLevel(p_140785_, p_140786_.m_9433_());
++         } else {
++            this.f_140762_.m_140715_(p_140785_, p_140786_.m_9433_(), true);
++         }
        }
  
 -   }
@@ -79,11 +171,16 @@
        }
  
        if (sortedarrayset.isEmpty()) {
-@@ -171,31 +_,71 @@
+@@ -170,5 +_,17 @@
+          this.f_140761_.remove(p_140819_);
        }
  
-       this.f_140762_.m_140715_(p_140819_, m_140797_(sortedarrayset), false);
--   }
+-      this.f_140762_.m_140715_(p_140819_, m_140797_(sortedarrayset), false);
++      if (com.mohistmc.LunamuraConfig.perf_ticketpropagator) {
++         this.updateTicketLevel(p_140819_, m_140797_(sortedarrayset));
++      } else {
++         this.f_140762_.m_140715_(p_140819_, m_140797_(sortedarrayset), false);
++      }
 +
 +      if (p_140820_.isForceTicks()) {
 +          SortedArraySet<Ticket<?>> tickets = forcedTickets.get(p_140819_);
@@ -92,70 +189,45 @@
 +          }
 +      }
 +      removeTicketCB.set(removed);
-+   }
-+
-+   // CraftBukkit start
-+   boolean removeTicketCB(long p_140819_, Ticket<?> p_140820_) {
-+      m_140818_(p_140819_, p_140820_);
-+      return removeTicketCB.getAndSet(false);
-+   }
-+   // CraftBukkit end
- 
-    public <T> void m_140792_(TicketType<T> p_140793_, ChunkPos p_140794_, int p_140795_, T p_140796_) {
-       this.m_140784_(p_140794_.m_45588_(), new Ticket<>(p_140793_, p_140795_, p_140796_));
     }
--
-    public <T> void m_140823_(TicketType<T> p_140824_, ChunkPos p_140825_, int p_140826_, T p_140827_) {
-       Ticket<T> ticket = new Ticket<>(p_140824_, p_140826_, p_140827_);
-       this.m_140818_(p_140825_.m_45588_(), ticket);
-    }
--
-+   
-    public <T> void m_140840_(TicketType<T> p_140841_, ChunkPos p_140842_, int p_140843_, T p_140844_) {
--      Ticket<T> ticket = new Ticket<>(p_140841_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140843_, p_140844_);
-+      addRegionTicket(p_140841_, p_140842_, p_140843_, p_140844_, false);
-+   }
-+   public <T> void addRegionTicket(TicketType<T> p_140841_, ChunkPos p_140842_, int p_140843_, T p_140844_, boolean forceTicks) {
-+      Ticket<T> ticket = new Ticket<>(p_140841_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140843_, p_140844_, forceTicks);
-       long i = p_140842_.m_45588_();
-       this.m_140784_(i, ticket);
-       this.f_183901_.m_184151_(i, ticket);
-    }
- 
-+   // CraftBukkit start
-+   public <T> boolean addRegionTicketAtDistance(TicketType<T> ticketType, ChunkPos chunkcoordintpair, int level, T identifier) {
-+      Ticket<T> ticket = new Ticket<>(ticketType, 33 - level, identifier, false);
-+      long i = chunkcoordintpair.m_45588_();
-+      boolean added = this.addTicketCB(i, ticket);
-+      this.f_183901_.m_184151_(i, ticket);
-+      return added; // CraftBukkit
-+   }
-+   // CraftBukkit end
-+
+@@ -192,7 +_,37 @@
     public <T> void m_140849_(TicketType<T> p_140850_, ChunkPos p_140851_, int p_140852_, T p_140853_) {
--      Ticket<T> ticket = new Ticket<>(p_140850_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140852_, p_140853_);
-+      removeRegionTicket(p_140850_, p_140851_, p_140852_, p_140853_, false);
-+   }
-+   public <T> void removeRegionTicket(TicketType<T> p_140850_, ChunkPos p_140851_, int p_140852_, T p_140853_, boolean forceTicks) {
-+      Ticket<T> ticket = new Ticket<>(p_140850_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140852_, p_140853_, forceTicks);
+       Ticket<T> ticket = new Ticket<>(p_140850_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140852_, p_140853_);
        long i = p_140851_.m_45588_();
        this.m_140818_(i, ticket);
        this.f_183901_.m_184165_(i, ticket);
     }
  
-+   // CraftBukkit start
++   public <T> void addRegionTicket(TicketType<T> p_140841_, ChunkPos p_140842_, int p_140843_, T p_140844_, boolean forceTicks) {
++      Ticket<T> ticket = new Ticket<>(p_140841_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140843_, p_140844_, forceTicks);
++      long i = p_140842_.m_45588_();
++      this.m_140784_(i, ticket);
++      this.f_183901_.m_184151_(i, ticket);
++   }
++
++   public <T> boolean addRegionTicketAtDistance(TicketType<T> ticketType, ChunkPos chunkcoordintpair, int level, T identifier) {
++      Ticket<T> ticket = new Ticket<>(ticketType, 33 - level, identifier, false);
++      long i = chunkcoordintpair.m_45588_();
++      boolean added = this.addTicketCB(i, ticket);
++      this.f_183901_.m_184151_(i, ticket);
++      return added;
++   }
++
++   public <T> void removeRegionTicket(TicketType<T> p_140850_, ChunkPos p_140851_, int p_140852_, T p_140853_, boolean forceTicks) {
++      Ticket<T> ticket = new Ticket<>(p_140850_, ChunkLevel.m_287154_(FullChunkStatus.FULL) - p_140852_, p_140853_, forceTicks);
++      long i = p_140851_.m_45588_();
++      this.m_140818_(i, ticket);
++      this.f_183901_.m_184165_(i, ticket);
++   }
++
 +   public <T> boolean removeRegionTicketAtDistance(TicketType<T> ticketType, ChunkPos chunkcoordintpair, int level, T p_140853_) {
 +      Ticket<T> ticket = new Ticket<>(ticketType, 33 - level, p_140853_, false);
 +      long i = chunkcoordintpair.m_45588_();
-+      boolean removed = this.removeTicketCB(i, ticket);
++      this.removeTicket(i, ticket);
++      boolean removed = removeTicketCB.getAndSet(false);
 +      this.f_183901_.m_184165_(i, ticket);
 +      return removed;
 +   }
-+   // CraftBukkit end
-+
-    private SortedArraySet<Ticket<?>> m_140857_(long p_140858_) {
-       return this.f_140761_.computeIfAbsent(p_140858_, (p_183923_) -> {
-          return SortedArraySet.m_14246_(4);
 @@ -230,6 +_,7 @@
        ChunkPos chunkpos = p_140829_.m_123251_();
        long i = chunkpos.m_45588_();
@@ -176,7 +248,7 @@
     private void m_143207_(String p_143208_) {
        try (FileOutputStream fileoutputstream = new FileOutputStream(new File(p_143208_))) {
           for(Long2ObjectMap.Entry<SortedArraySet<Ticket<?>>> entry : this.f_140761_.long2ObjectEntrySet()) {
-@@ -335,6 +_,26 @@
+@@ -335,6 +_,30 @@
     public boolean m_201911_() {
        return !this.f_140761_.isEmpty();
     }
@@ -190,7 +262,11 @@
 +         SortedArraySet<Ticket<?>> tickets = entry.getValue();
 +         if (tickets.remove(target)) {
 +            // copied from removeTicket
-+            this.f_140762_.m_140715_(entry.getLongKey(), m_140797_(tickets), false);
++            if (com.mohistmc.LunamuraConfig.perf_ticketpropagator) {
++               this.updateTicketLevel(entry.getLongKey(), m_140797_(tickets));
++            } else {
++               this.f_140762_.m_140715_(entry.getLongKey(), m_140797_(tickets), false);
++            }
 +
 +            // can't use entry after it's removed
 +            if (tickets.isEmpty()) {

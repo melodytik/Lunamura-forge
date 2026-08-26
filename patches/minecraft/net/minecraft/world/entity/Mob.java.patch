@@ -227,7 +227,8 @@
 @@ -692,6 +_,14 @@
           this.m_146870_();
        } else if (!this.m_21532_() && !this.m_8023_()) {
-          Entity entity = this.m_9236_().m_45930_(this, -1.0D);
+-         Entity entity = this.m_9236_().m_45930_(this, -1.0D);
++         Entity entity = com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex.getNearestPlayer(this.m_9236_(), this, -1.0D);
 +         net.minecraftforge.eventbus.api.Event.Result result = net.minecraftforge.event.ForgeEventFactory.canEntityDespawn(this, (ServerLevel) this.m_9236_());
 +         if (result == net.minecraftforge.eventbus.api.Event.Result.DENY) {
 +            f_20891_ = 0;
@@ -424,7 +425,7 @@
        this.m_21455_(true, false);
        this.m_20158_().forEach((p_278936_) -> {
           if (!p_278936_.m_41619_()) {
-@@ -1449,5 +_,40 @@
+@@ -1449,5 +_,48 @@
     public ItemStack m_142340_() {
        SpawnEggItem spawneggitem = SpawnEggItem.m_43213_(this.m_6095_());
        return spawneggitem == null ? null : new ItemStack(spawneggitem);
@@ -464,4 +465,12 @@
 +      }
 +      this.spawnCancelled = cancel;
     }
++
++   // Lunamura ActivationRange 2.0: 非激活实体的 AI 每秒只跑一次
++   @Override
++   public void inactiveTick() {
++      super.inactiveTick();
++      this.f_21345_.inactiveTick();
++      this.f_21346_.inactiveTick();
++   }
  }

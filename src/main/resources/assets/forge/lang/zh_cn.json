@@ -112,7 +112,7 @@
   "commands.forge.setdim.invalid.nochange": "所选的实体（{0}）已在指定的维度（{1}）。",
   "commands.forge.setdim.deprecated": "此命令将在 1.17 版本中被移除，请改用 %s。",
   "commands.forge.tps.invalid": "维度{0}无效，可用的值：{1}",
-  "commands.forge.tps.summary.all": "总计：平均游戏刻耗时：{0} ms。平均TPS：{1}",
+  "commands.forge.tps.summary.all": "总计：平均游戏刻耗时：%forge_mspt% ms。平均TPS：%forge_tps%",
   "commands.forge.mods.list": "Mod列表：{0}",
   "commands.forge.tps.summary.basic": "维度{0}：平均游戏刻耗时：{1} ms。平均TPS：{2}",
   "commands.forge.tps.summary.named": "维度{0}（{1}）：平均游戏刻耗时：{2} ms。平均 TPS：{3}",
