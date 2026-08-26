@@ -85,9 +85,22 @@
     @Nullable
     public BlockState m_6978_(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_) {
        int i = p_62865_.m_123342_();
-@@ -245,14 +_,15 @@
+@@ -245,14 +_,45 @@
              boolean flag2 = blockstate.m_155947_();
              if (!this.f_62776_.f_46443_) {
++               // Lunamura start - disarm bounding tiles BEFORE onRemove so BlockBounding.onRemove
++               // does not destroy the already-written upgraded machine (mekmm centrifuging factory).
++               if (!this.f_62776_.f_46443_ && !this.f_62776_.lunamura$mekCompatActive.getAndSet(true)) {
++                  try {
++                     if (com.mohistmc.LunamuraConfig.lunamuraMekanismUpgradeBoundingFix) {
++                        com.mohistmc.optimizations.LunamuraMekanismCompat.prepareUpgrade(this.f_62776_, p_62865_, p_62866_, blockstate);
++                     }
++                  } catch (Throwable t) {
++                  } finally {
++                     this.f_62776_.lunamura$mekCompatActive.set(false);
++                  }
++               }
++               // Lunamura end
                 blockstate.m_60753_(this.f_62776_, p_62865_, p_62866_, p_62867_);
 -            } else if (!blockstate.m_60713_(block) && flag2) {
 +            } else if ((!blockstate.m_60713_(block) || !p_62866_.m_155947_()) && flag2) {
@@ -99,6 +112,23 @@
              } else {
 -               if (!this.f_62776_.f_46443_) {
 +               // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
++      // Lunamura start - Mekanism tier-installer upgrade compat (bounding blocks).
++      // Runs AFTER the old block onRemove (which clears old bounding blocks) but BEFORE
++      // newState.onPlace (where the machine structure check runs), so the missing bounding
++      // blocks of a "large" machine (e.g. Mekanism:MoreMachine centrifuging factory) get placed
++      // in time and the machine does not self-destruct.
++      if (!this.f_62776_.f_46443_ && !this.f_62776_.lunamura$mekCompatActive.getAndSet(true)) {
++         try {
++            if (com.mohistmc.LunamuraConfig.lunamuraMekanismUpgradeBoundingFix) {
++               com.mohistmc.optimizations.LunamuraMekanismCompat.placeUpgradeBoundingBlocks(this.f_62776_, p_62865_, p_62866_, blockstate);
++            }
++         } catch (Throwable t) {
++            // Compatibility code must never break world logic
++         } finally {
++            this.f_62776_.lunamura$mekCompatActive.set(false);
++         }
++      }
++      // Lunamura end
 +               if (!this.f_62776_.f_46443_ && lunamura$doPlace.getAndSet(true) && (!this.f_62776_.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) {
                    p_62866_.m_60696_(this.f_62776_, p_62865_, blockstate, p_62867_);
                 }
