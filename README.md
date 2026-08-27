@@ -7,7 +7,7 @@
 [![Forge](https://img.shields.io/badge/Forge-1.20.1--47.4.22-brightgreen?logo=curseforge&logoColor=white)](https://files.minecraftforge.net/)
 [![JDK](https://img.shields.io/badge/JDK-17-brightgreen?logo=openjdk&logoColor=white)](https://adoptium.net/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.12.1-brightgreen?logo=gradle&logoColor=white)](https://docs.gradle.org/)
-[![Version](https://img.shields.io/badge/Version-1.3.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.3.1-blue.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 
 **Forge 模组 + Bukkit/Spigot/Paper 插件双兼容 &middot; 内置 20+ 项性能与稳定性优化**
@@ -84,11 +84,14 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 | 配置键 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
 | `lunamura.perf_blockentity_tick_cache` | boolean | `true` | **方块实体 tick 调度缓存**：缓存上一区块的 `shouldTickBlocksAt` 结果，`getLevel` 查询从"每方块实体一次"降到"每区块一次"（实测约 5 万方块实体下减少 97% 调度查询，TPS 提升约 40%） |
+| `lunamura.tile_entity_activation_range` | int | `128` | **方块实体激活半径**：在 `perf_blockentity_tick_cache` 放行后，再用"距最近玩家 xz 距离"二次过滤。离玩家 > 该值的单个方块实体不再 `tick()`，0 表示关闭。只影响 `BlockEntity.tick()`，不卸载区块/实体、不影响计划刻/流体 tick，属于外科式裁剪，建议先 `/spark` 观测热点后酌情调整 |
 | `lunamura.perf_spawn_count_interval` | int | `5` | **刷怪配额计数节流**：每 N tick 才重算一次 mob cap 计数，中间复用缓存结果，省去每 tick 的全实体遍历（设 `1` 恢复原版行为） |
 | `lunamura.perf_async_player_save` | boolean | `true` | **异步玩家数据保存**：主线程只做 NBT 序列化（快照），gzip 压缩 + 写盘下放后台线程池，关服时 shutdown hook 兜底 flush |
 | `lunamura.perf_async_save_json` | boolean | `true` | **异步存档 JSON**：op/ban/whitelist 等用户列表的序列化留主线程，写盘下放后台线程池 |
 | `lunamura.stop_save_timeout_ms` | int | `10000` | **关服存盘超时**：`/stop` 时区块排空循环超时保护，防止光照更新卡住或强制加载区块导致永真循环、无法正常关服 |
 | `lunamura.async_threads` | int | `2` | **自研异步线程池大小**：玩家数据 / 用户列表等落盘任务共用的固定线程池线程数。任务为磁盘 IO 密集型，**无需按 CPU 核数设置**，默认 2 即可；SSD 且存盘频繁的服务端可提到 4，一般不超过 8 |
+| `lunamura.perf_async_stats_save` | boolean | `true` | **异步统计存档**（v1.3.1）：玩家统计 `stats` 在主线程序列化为快照后交由后台线程池写盘（tmp + 原子替换），避免登录/退出的存盘高峰卡 tick |
+| `lunamura.perf_async_advancement_save` | boolean | `true` | **异步成就存档**（v1.3.1）：进度表序列化主线程快照 → 后台线程池原子写盘 |
 | `lunamura.perf_villager_brain_offload` | boolean | `true` | **村民脑机卸载**（源自 PRTS/ServerCore 移植）：将村民 `Brain` 的周期性 tick 从主线程节流，缓解村民密集村庄的卡顿 |
 
 ### 4. 其他功能
@@ -151,7 +154,7 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 ### 构建产物
 
 ```
-projects/mohist/build/libs/lunamura-1.20.1-1.3.0-server.jar   (~136 MB，唯一分发文件)
+projects/mohist/build/libs/lunamura-1.20.1-1.3.1-server.jar   (~136 MB，唯一分发文件)
 ```
 
 ---
@@ -159,7 +162,7 @@ projects/mohist/build/libs/lunamura-1.20.1-1.3.0-server.jar   (~136 MB，唯一�
 ## 运行 / Run
 
 ```bash
-java -jar lunamura-1.20.1-1.3.0-server.jar
+java -jar lunamura-1.20.1-1.3.1-server.jar
 ```
 
 首次启动会自动完成安装（解压内置库并应用二进制补丁），随后即可正常进入。

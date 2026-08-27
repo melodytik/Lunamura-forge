@@ -455,7 +455,7 @@
        if (!this.f_151503_.isEmpty()) {
           this.f_151512_.addAll(this.f_151503_);
           this.f_151503_.clear();
-@@ -410,12 +_,27 @@
+@@ -410,12 +_,53 @@
        Iterator<TickingBlockEntity> iterator = this.f_151512_.iterator();
  
 -      while(iterator.hasNext()) {
@@ -468,6 +468,15 @@
 -      }
 +      long lunamuraLastChunk = Long.MIN_VALUE;
 +      boolean lunamuraLastShouldTick = true;
++      int lunamuraRange = com.mohistmc.LunamuraConfig.perf_tile_entity_activation_range;
++      int lunamuraRange2 = lunamuraRange * lunamuraRange;
++      java.util.List<net.minecraft.server.level.ServerPlayer> lunamuraPlayers = null;
++      if (lunamuraRange > 0) {
++         MinecraftServer lunamuraServer = this.m_7654_();
++         if (lunamuraServer != null) {
++            lunamuraPlayers = lunamuraServer.m_6846_().m_11314_();
++         }
++      }
 +      while(iterator.hasNext()) {
 +         TickingBlockEntity tickingblockentity = iterator.next();
 +         if (tickingblockentity.m_142220_()) {
@@ -484,6 +493,23 @@
 +            lunamuraShouldTick = lunamuraLastShouldTick;
 +         } else {
 +            lunamuraShouldTick = this.m_220393_(tickingblockentity.m_142689_());
++         }
++         if (lunamuraShouldTick && lunamuraPlayers != null) {
++            BlockPos lunamuraPos = tickingblockentity.m_142689_();
++            int lunamuraX = lunamuraPos.m_123341_();
++            int lunamuraZ = lunamuraPos.m_123343_();
++            boolean lunamuraNear = false;
++            for(net.minecraft.server.level.ServerPlayer lunamuraPlayer : lunamuraPlayers) {
++               double lunamuraDX = lunamuraPlayer.m_20185_() - lunamuraX;
++               double lunamuraDZ = lunamuraPlayer.m_20189_() - lunamuraZ;
++               if (lunamuraDX * lunamuraDX + lunamuraDZ * lunamuraDZ <= (double)lunamuraRange2) {
++                  lunamuraNear = true;
++                  break;
++               }
++            }
++            if (!lunamuraNear) {
++               lunamuraShouldTick = false;
++            }
 +         }
 +         if (lunamuraShouldTick) {
 +            tickingblockentity.m_142224_();

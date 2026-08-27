@@ -87,6 +87,73 @@ public final class LunamuraAsync {
     }
 
     /**
+     * 异步将文本内容写入文件（主线程已序列化好的字符串快照，后台只做磁盘 IO）。
+     * 采用 tmp + 原子 rename 保证写入完整性。
+     */
+    public static void saveFile(java.io.File target, String content) {
+        submit(() -> {
+            try {
+                java.io.File parent = target.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+                java.nio.file.Path tmp = java.nio.file.Files.createTempFile(
+                        parent != null ? parent.toPath() : null,
+                        target.getName() + "-", ".tmp");
+                try {
+                    java.nio.file.Files.writeString(tmp, content, java.nio.charset.StandardCharsets.UTF_8);
+                    try {
+                        java.nio.file.Files.move(tmp, target.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                    } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
+                        java.nio.file.Files.move(tmp, target.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } catch (Throwable t) {
+                    try { java.nio.file.Files.deleteIfExists(tmp); } catch (Throwable ignored2) {}
+                    throw t;
+                }
+            } catch (Exception ex) {
+                LOGGER.warn("Failed to async save file {}", target, ex);
+            }
+        });
+    }
+
+    /**
+     * 异步将字节数组写入文件（适用于已序列化好的二进制快照）。
+     */
+    public static void saveFile(java.io.File target, byte[] content) {
+        submit(() -> {
+            try {
+                java.io.File parent = target.getParentFile();
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+                java.nio.file.Path tmp = java.nio.file.Files.createTempFile(
+                        parent != null ? parent.toPath() : null,
+                        target.getName() + "-", ".tmp");
+                try {
+                    java.nio.file.Files.write(tmp, content);
+                    try {
+                        java.nio.file.Files.move(tmp, target.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                    } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
+                        java.nio.file.Files.move(tmp, target.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } catch (Throwable t) {
+                    try { java.nio.file.Files.deleteIfExists(tmp); } catch (Throwable ignored2) {}
+                    throw t;
+                }
+            } catch (Exception ex) {
+                LOGGER.warn("Failed to async save file {}", target, ex);
+            }
+        });
+    }
+
+    /**
      * 提交一个通用后台 IO 任务。
      */
     public static void submit(Runnable task) {

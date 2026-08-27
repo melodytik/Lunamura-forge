@@ -14,11 +14,17 @@
        if (p_12817_.isFile()) {
           try {
              this.m_12832_(p_12816_.m_129933_(), FileUtils.readFileToString(p_12817_));
-@@ -54,6 +_,7 @@
+@@ -54,6 +_,13 @@
     }
  
     public void m_12818_() {
 +      if ( org.spigotmc.SpigotConfig.disableStatSaving ) return; // Spigot
++      // Lunamura start - async stats save (serialize on main thread, write on IO thread)
++      if (com.mohistmc.LunamuraConfig.perf_async_stats_save) {
++         com.mohistmc.LunamuraAsync.saveFile(this.f_12811_, this.m_12845_());
++         return;
++      }
++      // Lunamura end
        try {
           FileUtils.writeStringToFile(this.f_12811_, this.m_12845_());
        } catch (IOException ioexception) {

@@ -21,6 +21,17 @@
        Map<ResourceLocation, AdvancementProgress> map = new LinkedHashMap<>();
  
        for(Map.Entry<Advancement, AdvancementProgress> entry : this.f_263740_.entrySet()) {
+@@ -155,4 +_,10 @@
+       jsonelement.getAsJsonObject().addProperty("DataVersion", SharedConstants.m_183709_().m_183476_().m_193006_());
+ 
++      // Lunamura start - async advancement save
++      if (com.mohistmc.LunamuraConfig.perf_async_advancement_save) {
++         com.mohistmc.LunamuraAsync.saveFile(this.f_263766_.toFile(), f_135959_.toJson(jsonelement));
++         return;
++      }
++      // Lunamura end
+       try {
+          FileUtil.m_257659_(this.f_263766_.getParent());
 @@ -167,6 +_,8 @@
     }
  

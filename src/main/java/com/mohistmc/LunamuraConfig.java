@@ -193,7 +193,17 @@ public class LunamuraConfig {
     public static boolean perf_async_player_save;
     public static int stop_save_timeout_ms;
     public static boolean perf_blockentity_tick_cache;
+    public static int perf_tile_entity_activation_range;
     public static boolean perf_villager_brain_offload;
+
+    // Lunamura v1.4.0 async/threading optimizations
+    public static boolean perf_async_stats_save;
+    public static boolean perf_async_advancement_save;
+    public static boolean perf_async_chat_command;
+    public static boolean perf_async_packet_build;
+    public static boolean perf_poi_async;
+    public static boolean perf_vec3_pool;
+    public static boolean perf_aabb_pool;
 
     // CatServer performance/robustness ports (config key prefix: cat.)
     public static boolean catActivationNullGuard;
@@ -254,7 +264,17 @@ public class LunamuraConfig {
         perf_async_player_save = getBoolean("lunamura.perf_async_player_save", true);
         stop_save_timeout_ms = getInt("lunamura.stop_save_timeout_ms", 10000);
         perf_blockentity_tick_cache = getBoolean("lunamura.perf_blockentity_tick_cache", true);
+        perf_tile_entity_activation_range = Math.max(0, getInt("lunamura.tile_entity_activation_range", 128));
         perf_villager_brain_offload = getBoolean("lunamura.perf_villager_brain_offload", true);
+
+        // Lunamura v1.4.0 async/threading optimizations
+        perf_async_stats_save = getBoolean("lunamura.perf_async_stats_save", true);
+        perf_async_advancement_save = getBoolean("lunamura.perf_async_advancement_save", true);
+        perf_async_chat_command = getBoolean("lunamura.perf_async_chat_command", true);
+        perf_async_packet_build = getBoolean("lunamura.perf_async_packet_build", true);
+        perf_poi_async = getBoolean("lunamura.perf_poi_async", true);
+        perf_vec3_pool = getBoolean("lunamura.perf_vec3_pool", false);
+        perf_aabb_pool = getBoolean("lunamura.perf_aabb_pool", false);
 
         // Lunamura Async (自研多线程模块)
         async_threads = Math.max(1, getInt("lunamura.async_threads", 2));
