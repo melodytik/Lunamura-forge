@@ -383,7 +383,7 @@
        if (p_129887_) {
           for(ServerLevel serverlevel1 : this.m_129785_()) {
              f_129750_.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", (Object)serverlevel1.m_7726_().f_8325_.m_182285_());
-@@ -537,12 +_,35 @@
+@@ -537,12 +_,38 @@
        this.m_7041_();
     }
  
@@ -411,6 +411,9 @@
  
        f_129750_.info("Stopping server");
 +      WatchLunamura.stop();
++      // Lunamura start - drain async IO queue before worlds save so no write races the final save
++      com.mohistmc.LunamuraAsync.drain(com.mohistmc.LunamuraConfig.stop_save_timeout_ms);
++      // Lunamura end
 +      // CraftBukkit start
 +      if (this.server != null) {
 +         this.server.disablePlugins();

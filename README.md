@@ -7,10 +7,10 @@
 [![Forge](https://img.shields.io/badge/Forge-1.20.1--47.4.22-brightgreen?logo=curseforge&logoColor=white)](https://files.minecraftforge.net/)
 [![JDK](https://img.shields.io/badge/JDK-17-brightgreen?logo=openjdk&logoColor=white)](https://adoptium.net/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.12.1-brightgreen?logo=gradle&logoColor=white)](https://docs.gradle.org/)
-[![Version](https://img.shields.io/badge/Version-1.2.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.3.0-blue.svg)]()
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 
-**Forge 模组 + Bukkit/Spigot/Paper 插件双兼容 &middot; 内置 30+ 项性能与稳定性优化**
+**Forge 模组 + Bukkit/Spigot/Paper 插件双兼容 &middot; 内置 20+ 项性能与稳定性优化**
 
 
 [![](https://bstats.org/signatures/server-implementation/Lunamura.svg)](https://bstats.org/plugin/server-implementation/Lunamura/33225)
@@ -85,9 +85,11 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 |---|---|---|---|
 | `lunamura.perf_blockentity_tick_cache` | boolean | `true` | **方块实体 tick 调度缓存**：缓存上一区块的 `shouldTickBlocksAt` 结果，`getLevel` 查询从"每方块实体一次"降到"每区块一次"（实测约 5 万方块实体下减少 97% 调度查询，TPS 提升约 40%） |
 | `lunamura.perf_spawn_count_interval` | int | `5` | **刷怪配额计数节流**：每 N tick 才重算一次 mob cap 计数，中间复用缓存结果，省去每 tick 的全实体遍历（设 `1` 恢复原版行为） |
-| `lunamura.perf_async_player_save` | boolean | `true` | **异步玩家数据保存**：主线程只做 NBT 序列化（快照），gzip 压缩 + 写盘下放后台单线程，关服时 shutdown hook 兜底 flush |
-| `lunamura.perf_async_save_json` | boolean | `true` | **异步存档 JSON**：op/ban/whitelist 等用户列表的序列化留主线程，写盘下放后台单线程串行（避免并发写文件） |
+| `lunamura.perf_async_player_save` | boolean | `true` | **异步玩家数据保存**：主线程只做 NBT 序列化（快照），gzip 压缩 + 写盘下放后台线程池，关服时 shutdown hook 兜底 flush |
+| `lunamura.perf_async_save_json` | boolean | `true` | **异步存档 JSON**：op/ban/whitelist 等用户列表的序列化留主线程，写盘下放后台线程池 |
 | `lunamura.stop_save_timeout_ms` | int | `10000` | **关服存盘超时**：`/stop` 时区块排空循环超时保护，防止光照更新卡住或强制加载区块导致永真循环、无法正常关服 |
+| `lunamura.async_threads` | int | `2` | **自研异步线程池大小**：玩家数据 / 用户列表等落盘任务共用的固定线程池线程数。任务为磁盘 IO 密集型，**无需按 CPU 核数设置**，默认 2 即可；SSD 且存盘频繁的服务端可提到 4，一般不超过 8 |
+| `lunamura.perf_villager_brain_offload` | boolean | `true` | **村民脑机卸载**（源自 PRTS/ServerCore 移植）：将村民 `Brain` 的周期性 tick 从主线程节流，缓解村民密集村庄的卡顿 |
 
 ### 4. 其他功能
 
@@ -119,28 +121,6 @@ Lunamura 是基于 [MohistMC](https://github.com/MohistMC/Mohist) 1.20.1 的高�
 | `player_modlist_blacklist.enable` | boolean | `false` | 启用玩家模组黑名单 |
 | `server_modlist_whitelist.enable` | boolean | `false` | 启用服务端模组白名单 |
 | `forge.bukkitpermissionshandler` | boolean | `true` | 使用 Bukkit 权限处理器 |
-
-### 8. PRTS / ServerCore 性能优化（移植）
-
-从 PRTS-SERVER（Arclight 生产 fork）移植其整合的 **ServerCore** 实体激活与票据传播优化（原始作者 Wesley1808，GPL-3.0），全部可逐项开关：
-
-| 配置键 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `lunamura.perf_spatial_entity_tracking` | boolean | `false` | **routeB 空间实体追踪**：用空间哈希替代原版按玩家半径线性扫描的实体广播 diff，大规模玩家/实体下显著降低主线程 CPU（运行期异常时自动回退原版） |
-| `lunamura.perf_nearby_player_index` | boolean | `true` | **NPI 空间玩家索引**：以空间结构缓存"附近玩家"，替代逐实体遍历所有玩家查询，加速实体 AI 的玩家可见性判断 |
-| `lunamura.perf_nearby_player_index_verify` | boolean | `false` | NPI 一致性校验（调试用，开启有额外开销） |
-| `lunamura.perf_villager_brain_offload` | boolean | `true` | **村民脑机卸载**：将村民 `Brain` 的周期性 tick 从主线程节流，缓解村民密集村庄的卡顿 |
-| `lunamura.perf_ticketpropagator` | boolean | `false` | **票据传播器**：用 `DistanceManager` 5 参 `addRegionTicket`/`removeRegionTicket` + `AtDistance` 变体重写区块加载票据传播，减少无用区块加载 |
-| `lunamura.perf_activation_range2` | boolean | `true` | **ActivationRange 2.0**：在 Spigot 原版激活范围基础上，新增"按类型 tick 间隔 / 垂直激活范围 / 定期唤醒 / 跳过非免疫实体 / 村民工作免疫"等机制，非激活实体不再完全停 tick 而是隔 N tick 跑一次，兼顾性能与行为正确 |
-| `lunamura.perf_activation_range2_vertical` | boolean | `false` | 激活范围是否使用垂直距离 |
-| `lunamura.perf_activation_range2_tick_interval` | int | `20` | 非激活实体每隔多少 tick 才完整 tick 一次 |
-| `lunamura.perf_activation_range2_skip_non_immune` | boolean | `false` | 跳过"非免疫"实体的部分处理（极端场景慎用） |
-| `lunamura.perf_activation_range2_wakeup_interval` | int | `-1` | 周期性强制唤醒间隔（-1 = 关闭） |
-| `lunamura.perf_activation_range2_villager_tick_panic` | boolean | `true` | 村民恐慌状态下恢复完整 tick |
-| `lunamura.perf_activation_range2_villager_work_immunity_after` | int | `20` | 村民开始工作后的免疫 tick 数 |
-| `lunamura.perf_activation_range2_villager_work_immunity_for` | int | `20` | 村民工作免疫持续 tick 数 |
-| `lunamura.perf_activation_range2_tick_new_entities` | boolean | `true` | 新生成实体立即参与激活判定 |
-| `lunamura.perf_activation_range2_excluded_types` | list | `[]` | 不参与 ActivationRange 2.0 的实体类型 ID 列表 |
 
 ---
 
@@ -221,7 +201,7 @@ lunamura:
 
 - **[Leaf](https://github.com/Winds-Studio/Leaf)** — Paper 系高性能服务端分支，本项目的性能优化主要移植来源
 - **[CatServer](https://github.com/Luohuayu/CatServer)** — Forge 混合端前辈，本项目的稳定性补丁与插件字节码兼容方案来源
-- **[PRTS-SERVER](https://github.com/ElainAwa/PRTS-SERVER)** — Arclight 生产 fork，本项目第 8 节「PRTS / ServerCore 性能优化」（routeB 空间实体追踪 / NPI / Villager brain offload / ticketpropagator / ActivationRange 2.0）的直接移植来源
+- **[PRTS-SERVER](https://github.com/ElainAwa/PRTS-SERVER)** — Arclight 生产 fork，本项目「村民脑机卸载」（`perf_villager_brain_offload`）的直接移植来源
 - **[ServerCore](https://github.com/Wesley1808/ServerCore)** — 上述实体激活与票据传播优化的原始实现
 
 ### 上游生态

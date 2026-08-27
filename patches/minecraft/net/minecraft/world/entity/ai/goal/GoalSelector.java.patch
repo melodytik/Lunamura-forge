@@ -1,21 +1,13 @@
 --- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
 +++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
-@@ -17,6 +_,7 @@
- public class GoalSelector {
-+   private int activationRangeCurRate;
-    private static final Logger f_25342_ = LogUtils.getLogger();
-    private static final WrappedGoal f_25343_ = new WrappedGoal(Integer.MAX_VALUE, new Goal() {
-       public boolean m_8036_() {
-          return false;
-       }
 @@ -155,4 +_,10 @@
        }
  
     }
-+   // Lunamura ActivationRange 2.0: 非激活实体的 AI 每秒只跑一次
++
++   // Spigot start - Entity Activation Range: inactive goals tick once per second
 +   public void inactiveTick() {
-+      if (++this.activationRangeCurRate % 20 == 0) {
-+         this.m_25373_();
-+      }
++      this.m_25373_();
 +   }
++   // Spigot end
  }

@@ -85,16 +85,14 @@
     @Nullable
     public BlockState m_6978_(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_) {
        int i = p_62865_.m_123342_();
-@@ -245,14 +_,45 @@
+@@ -245,14 +_,41 @@
              boolean flag2 = blockstate.m_155947_();
              if (!this.f_62776_.f_46443_) {
 +               // Lunamura start - disarm bounding tiles BEFORE onRemove so BlockBounding.onRemove
 +               // does not destroy the already-written upgraded machine (mekmm centrifuging factory).
 +               if (!this.f_62776_.f_46443_ && !this.f_62776_.lunamura$mekCompatActive.getAndSet(true)) {
 +                  try {
-+                     if (com.mohistmc.LunamuraConfig.lunamuraMekanismUpgradeBoundingFix) {
-+                        com.mohistmc.optimizations.LunamuraMekanismCompat.prepareUpgrade(this.f_62776_, p_62865_, p_62866_, blockstate);
-+                     }
++                     com.mohistmc.optimizations.LunamuraMekanismCompat.prepareUpgrade(this.f_62776_, p_62865_, p_62866_, blockstate);
 +                  } catch (Throwable t) {
 +                  } finally {
 +                     this.f_62776_.lunamura$mekCompatActive.set(false);
@@ -119,9 +117,7 @@
 +      // in time and the machine does not self-destruct.
 +      if (!this.f_62776_.f_46443_ && !this.f_62776_.lunamura$mekCompatActive.getAndSet(true)) {
 +         try {
-+            if (com.mohistmc.LunamuraConfig.lunamuraMekanismUpgradeBoundingFix) {
-+               com.mohistmc.optimizations.LunamuraMekanismCompat.placeUpgradeBoundingBlocks(this.f_62776_, p_62865_, p_62866_, blockstate);
-+            }
++            com.mohistmc.optimizations.LunamuraMekanismCompat.placeUpgradeBoundingBlocks(this.f_62776_, p_62865_, p_62866_, blockstate);
 +         } catch (Throwable t) {
 +            // Compatibility code must never break world logic
 +         } finally {

@@ -1,13 +1,12 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -5,7 +_,10 @@
+@@ -5,7 +_,9 @@
  import com.google.common.collect.Lists;
  import com.google.common.collect.Queues;
  import com.google.common.collect.Sets;
 +import com.google.common.util.concurrent.AtomicDouble;
  import com.google.gson.JsonElement;
 +import com.mohistmc.bukkit.CallbackExecutor;
-+import com.mohistmc.optimizations.entitytracking.NearbyEntityTracking;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Either;
  import com.mojang.logging.LogUtils;
@@ -34,7 +33,7 @@
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.chunk.ChunkAccess;
-@@ -101,6 +_,11 @@
+@@ -101,6 +_,7 @@
  import net.minecraft.world.phys.Vec3;
  import org.apache.commons.lang3.mutable.MutableBoolean;
  import org.apache.commons.lang3.mutable.MutableObject;
@@ -42,11 +41,7 @@
  import org.slf4j.Logger;
  
 -public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider {
-+public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider, com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndexHolder {
-+   private final com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex lunamura$npi = new com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex();
-+   public com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex lunamura$getNearbyPlayerIndex() {
-+      return this.lunamura$npi;
-+   }
++public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider {
 @@ -122,7 +_,7 @@
     private final ThreadedLevelLightEngine f_140134_;
     private final BlockableEventLoop<Runnable> f_140135_;
@@ -56,7 +51,7 @@
     private final ChunkGeneratorStructureState f_254626_;
     private final Supplier<DimensionDataStorage> f_140137_;
     private final PoiManager f_140138_;
-@@ -144,6 +_,12 @@
+@@ -144,6 +_,11 @@
     private final Queue<Runnable> f_140125_ = Queues.newConcurrentLinkedQueue();
     int f_140126_;
  
@@ -64,7 +59,6 @@
 +   public final CallbackExecutor callbackExecutor = new CallbackExecutor();
 +   // CraftBukkit end
 +
-+   private final com.mohistmc.optimizations.entitytracking.NearbyEntityTracking lunamura$net = new com.mohistmc.optimizations.entitytracking.NearbyEntityTracking();
 +
     public ChunkMap(ServerLevel p_214836_, LevelStorageSource.LevelStorageAccess p_214837_, DataFixer p_214838_, StructureTemplateManager p_214839_, Executor p_214840_, BlockableEventLoop<Runnable> p_214841_, LightChunkGetter p_214842_, ChunkGenerator p_214843_, ChunkProgressListener p_214844_, ChunkStatusUpdateListener p_214845_, Supplier<DimensionDataStorage> p_214846_, int p_214847_, boolean p_214848_) {
        super(p_214837_.m_197394_(p_214836_.m_46472_()).resolve("region"), p_214838_, p_214848_);
@@ -228,30 +222,6 @@
  
     private boolean m_140329_(ServerPlayer p_140330_) {
        return p_140330_.m_5833_() && !this.f_140133_.m_46469_().m_46207_(GameRules.f_46146_);
-@@ -1027,6 +_,13 @@
-          }
-       }
- 
-+      if (com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex.enabled()) {
-+         if (p_140194_) {
-+            this.lunamura$npi.addPlayer(p_140193_);
-+         } else {
-+            this.lunamura$npi.removePlayer(p_140193_);
-+         }
-+      }
-    }
- 
-    private SectionPos m_140373_(ServerPlayer p_140374_) {
-@@ -1115,6 +_,9 @@
-          }
-       }
- 
-+      if (com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex.enabled()) {
-+         this.lunamura$npi.movePlayer(p_140185_);
-+      }
-    }
- 
-    public List<ServerPlayer> m_183262_(ChunkPos p_183801_, boolean p_183802_) {
 @@ -1132,9 +_,10 @@
     }
  
@@ -264,17 +234,7 @@
           if (i != 0) {
              int j = entitytype.m_20682_();
              if (this.f_140150_.containsKey(p_140200_.m_19879_())) {
-@@ -1142,6 +_,9 @@
-             } else {
-                ChunkMap.TrackedEntity chunkmap$trackedentity = new ChunkMap.TrackedEntity(p_140200_, i, j, entitytype.m_20683_());
-                this.f_140150_.put(p_140200_.m_19879_(), chunkmap$trackedentity);
-+               if (com.mohistmc.optimizations.entitytracking.NearbyEntityTracking.isRouteBActive()) {
-+                  this.lunamura$net.addEntityTracker(chunkmap$trackedentity);
-+               }
-                chunkmap$trackedentity.m_140487_(this.f_140133_.m_6907_());
-                if (p_140200_ instanceof ServerPlayer) {
-                   ServerPlayer serverplayer = (ServerPlayer)p_140200_;
-@@ -1160,25 +_,35 @@
+@@ -1160,25 +_,27 @@
     }
  
     protected void m_140331_(Entity p_140332_) {
@@ -304,9 +264,6 @@
 +         ChunkMap.TrackedEntity chunkmap$trackedentity1 = this.f_140150_.remove(p_140332_.m_19879_());
 +         if (chunkmap$trackedentity1 != null) {
 +            chunkmap$trackedentity1.m_140482_();
-+            if (com.mohistmc.optimizations.entitytracking.NearbyEntityTracking.isRouteBActive()) {
-+               this.lunamura$net.removeEntityTracker(chunkmap$trackedentity1);
-+            }
 +         }
 +      } catch (Exception ignored) { // Lunamura TODO
 +      }
@@ -316,20 +273,14 @@
        List<ServerPlayer> list = Lists.newArrayList();
        List<ServerPlayer> list1 = this.f_140133_.m_6907_();
 -
-+      try {
-+         if (com.mohistmc.optimizations.entitytracking.NearbyEntityTracking.isRouteBActive() && !this.lunamura$net.isEmpty()) {
-+            this.lunamura$net.tick();
-+            return;
-+         }
        for(ChunkMap.TrackedEntity chunkmap$trackedentity : this.f_140150_.values()) {
           SectionPos sectionpos = chunkmap$trackedentity.f_140474_;
           SectionPos sectionpos1 = SectionPos.m_235861_(chunkmap$trackedentity.f_140472_);
-@@ -1203,7 +_,7 @@
+@@ -1203,7 +_,6 @@
              chunkmap$trackedentity1.m_140487_(list);
           }
        }
 -
-+   } catch (Exception ignored) {}
     }
  
     public void m_140201_(Entity p_140202_, Packet<?> p_140203_) {
@@ -341,9 +292,6 @@
     }
  
     protected PoiManager m_140424_() {
-@@ -1319,1 +_,1 @@
--   public class TrackedEntity {
-+   public class TrackedEntity implements com.mohistmc.optimizations.entitytracking.EntityTrackerExtension {
 @@ -1324,7 +_,7 @@
        public final Set<ServerPlayerConnection> f_140475_ = Sets.newIdentityHashSet();
  
@@ -353,69 +301,6 @@
           this.f_140472_ = p_140478_;
           this.f_140473_ = p_140479_;
           this.f_140474_ = SectionPos.m_235861_(p_140478_);
-@@ -1331,2 +_,62 @@
-       }
-+   private double lunamura$prevX = Double.NaN;
-+   private double lunamura$prevY = Double.NaN;
-+   private double lunamura$prevZ = Double.NaN;
-+
-+   public net.minecraft.world.entity.Entity lunamura$getEntity() {
-+      return this.f_140472_;
-+   }
-+
-+   public net.minecraft.core.SectionPos lunamura$getSectionPos() {
-+      return this.f_140474_;
-+   }
-+
-+   public void lunamura$setSectionPos(net.minecraft.core.SectionPos p) {
-+      this.f_140474_ = p;
-+   }
-+
-+   public boolean isPositionUpdated() {
-+      net.minecraft.world.phys.Vec3 v = this.f_140472_.m_20182_();
-+      return this.lunamura$prevX != v.f_82479_ || this.lunamura$prevY != v.f_82480_ || this.lunamura$prevZ != v.f_82481_;
-+   }
-+
-+   public void updatePosition() {
-+      net.minecraft.world.phys.Vec3 v = this.f_140472_.m_20182_();
-+      this.lunamura$prevX = v.f_82479_;
-+      this.lunamura$prevY = v.f_82480_;
-+      this.lunamura$prevZ = v.f_82481_;
-+   }
-+
-+   public net.minecraft.world.phys.Vec3 getPreviousLocation() {
-+      return new net.minecraft.world.phys.Vec3(this.lunamura$prevX, this.lunamura$prevY, this.lunamura$prevZ);
-+   }
-+
-+   public long getPreviousChunkPos() {
-+      return net.minecraft.world.level.ChunkPos.asLong(net.minecraft.core.SectionPos.m_123171_(this.lunamura$prevX), net.minecraft.core.SectionPos.m_123171_(this.lunamura$prevZ));
-+   }
-+
-+   public void updateListeners(java.util.Set<net.minecraft.server.level.ServerPlayer> players) {
-+      for (net.minecraft.server.level.ServerPlayer p : players) {
-+         this.m_140497_(p);
-+      }
-+   }
-+
-+   public void tryTick() {
-+      if (this.f_140475_.isEmpty()) {
-+         this.f_140471_.m_8533_();
-+      } else {
-+         ((com.mohistmc.optimizations.entitytracking.EntityTrackerEntryExtension) this.f_140471_).vmp$updatePassengers();
-+         for (net.minecraft.server.network.ServerPlayerConnection conn : this.f_140475_) {
-+            ((com.mohistmc.optimizations.entitytracking.EntityTrackerEntryExtension) this.f_140471_).vmp$syncEntityData();
-+         }
-+      }
-+   }
-+
-+   public void vmp$updatePassengers() {
-+      ((com.mohistmc.optimizations.entitytracking.EntityTrackerEntryExtension) this.f_140471_).vmp$updatePassengers();
-+   }
-+
-+   public int vmp$getEffectiveRange() {
-+      return this.m_140496_();
-+   }
- 
 @@ -1378,6 +_,12 @@
              double d1 = vec3.f_82479_ * vec3.f_82479_ + vec3.f_82481_ * vec3.f_82481_;
              double d2 = d0 * d0;

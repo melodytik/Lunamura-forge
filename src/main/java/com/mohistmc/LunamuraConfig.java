@@ -194,22 +194,6 @@ public class LunamuraConfig {
     public static int stop_save_timeout_ms;
     public static boolean perf_blockentity_tick_cache;
     public static boolean perf_villager_brain_offload;
-    public static boolean perf_nearby_player_index;
-    public static boolean perf_nearby_player_index_verify;
-    public static boolean perf_activation_range2;
-    public static boolean perf_activation_range2_vertical;
-    public static boolean perf_ticketpropagator;
-    public static boolean perf_spatial_entity_tracking;
-
-    // ActivationRange 2.0 tuning (ported from ServerCore; gated by perf_activation_range2)
-    public static int perf_activation_range2_tick_interval = 20;
-    public static boolean perf_activation_range2_skip_non_immune;
-    public static int perf_activation_range2_wakeup_interval = -1;
-    public static boolean perf_activation_range2_villager_tick_panic = true;
-    public static int perf_activation_range2_villager_work_immunity_after = 20;
-    public static int perf_activation_range2_villager_work_immunity_for = 20;
-    public static boolean perf_activation_range2_tick_new_entities = true;
-    public static List<String> perf_activation_range2_excluded = new ArrayList<>();
 
     // CatServer performance/robustness ports (config key prefix: cat.)
     public static boolean catActivationNullGuard;
@@ -220,9 +204,8 @@ public class LunamuraConfig {
     public static boolean catPluginBytecodeFix;
     public static int catPluginExecutorMaxThreads;
 
-    // Mekanism / Mekanism:More Machine tier-installer upgrade compatibility
-    // (places missing bounding blocks when a "large" machine is upgraded in place)
-    public static boolean lunamuraMekanismUpgradeBoundingFix = true;
+    // Lunamura Async (自研多线程模块)
+    public static int async_threads;
 
     //Messaes
     public static String message_require_forge;
@@ -272,20 +255,9 @@ public class LunamuraConfig {
         stop_save_timeout_ms = getInt("lunamura.stop_save_timeout_ms", 10000);
         perf_blockentity_tick_cache = getBoolean("lunamura.perf_blockentity_tick_cache", true);
         perf_villager_brain_offload = getBoolean("lunamura.perf_villager_brain_offload", true);
-        perf_nearby_player_index = getBoolean("lunamura.perf_nearby_player_index", true);
-        perf_nearby_player_index_verify = getBoolean("lunamura.perf_nearby_player_index_verify", false);
-        perf_activation_range2 = getBoolean("lunamura.perf_activation_range2", true);
-        perf_activation_range2_vertical = getBoolean("lunamura.perf_activation_range2_vertical", false);
-        perf_activation_range2_tick_interval = getInt("lunamura.perf_activation_range2_tick_interval", 20);
-        perf_activation_range2_skip_non_immune = getBoolean("lunamura.perf_activation_range2_skip_non_immune", false);
-        perf_activation_range2_wakeup_interval = getInt("lunamura.perf_activation_range2_wakeup_interval", -1);
-        perf_activation_range2_villager_tick_panic = getBoolean("lunamura.perf_activation_range2_villager_tick_panic", true);
-        perf_activation_range2_villager_work_immunity_after = getInt("lunamura.perf_activation_range2_villager_work_immunity_after", 20);
-        perf_activation_range2_villager_work_immunity_for = getInt("lunamura.perf_activation_range2_villager_work_immunity_for", 20);
-        perf_activation_range2_tick_new_entities = getBoolean("lunamura.perf_activation_range2_tick_new_entities", true);
-        perf_activation_range2_excluded = getStringList("lunamura.perf_activation_range2_excluded_types", new ArrayList<>());
-        perf_ticketpropagator = getBoolean("lunamura.perf_ticketpropagator", false);
-        perf_spatial_entity_tracking = getBoolean("lunamura.perf_spatial_entity_tracking", false);
+
+        // Lunamura Async (自研多线程模块)
+        async_threads = Math.max(1, getInt("lunamura.async_threads", 2));
 
         // CatServer ports (config key prefix: cat.)
         catActivationNullGuard = getBoolean("cat.activation_null_guard", true);
@@ -295,6 +267,5 @@ public class LunamuraConfig {
         catDrainTasksInChunkTick = getBoolean("cat.drain_tasks_in_chunk_tick", true);
         catPluginBytecodeFix = getBoolean("cat.plugin_bytecode_fix", true);
         catPluginExecutorMaxThreads = getInt("cat.plugin_executor_max_threads", 0);
-        lunamuraMekanismUpgradeBoundingFix = getBoolean("lunamura.mekanism_upgrade_bounding_fix", true);
     }
 }

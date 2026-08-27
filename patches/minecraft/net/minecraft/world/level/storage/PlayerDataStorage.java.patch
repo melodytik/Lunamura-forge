@@ -40,7 +40,7 @@
 +         CompoundTag compoundtag = p_78434_.m_20240_(new CompoundTag());
 +         net.minecraftforge.event.ForgeEventFactory.firePlayerSavingEvent(p_78434_, f_78427_, p_78434_.m_20149_());
 +         if (com.mohistmc.LunamuraConfig.perf_async_player_save) {
-+            com.mohistmc.LunamuraAsyncSave.savePlayerData(compoundtag, this.f_78427_, p_78434_.m_20149_(), p_78434_.m_7755_().getString());
++            com.mohistmc.LunamuraAsync.savePlayerData(compoundtag, this.f_78427_, p_78434_.m_20149_(), p_78434_.m_7755_().getString());
 +         } else {
 +            File file1 = File.createTempFile(p_78434_.m_20149_() + "-", ".dat", this.f_78427_);
 +            NbtIo.m_128944_(compoundtag, file1);

@@ -123,7 +123,7 @@
     private final Set<TagKey<Fluid>> f_19801_ = new HashSet<>();
     public int f_19802_;
     protected boolean f_19803_ = true;
-@@ -236,13 +_,108 @@
+@@ -236,13 +_,98 @@
     @Nullable
     private BlockState f_185934_ = null;
  
@@ -143,14 +143,6 @@
 +   public final org.spigotmc.ActivationRange.ActivationType activationType = org.spigotmc.ActivationRange.initializeEntityActivationType(this);
 +   public final boolean defaultActivationState;
 +   public long activatedTick = Integer.MIN_VALUE;
-+   // Lunamura ActivationRange 2.0 start
-+   public org.spigotmc.ActivationRange.ActivationType2 activationRangeType;
-+   public boolean activationRangeExcluded;
-+   public int activationRangeActivatedTick;
-+   public int activationRangeActivatedImmunityTick;
-+   public boolean activationRangeInactive;
-+   public int activationRangeFullTickCount;
-+   // Lunamura ActivationRange 2.0 end
 +   public void inactiveTick() { }
 +   // Spigot end
 +
@@ -220,8 +212,6 @@
 +         var config = p_19871_.spigotConfig;
 +         if (config != null) {
 +            this.defaultActivationState = ActivationRange.initializeEntityActivationState(this, config);
-+            this.activationRangeType = ActivationRange.initializeEntityActivationType2(this);
-+            this.activationRangeExcluded = ActivationRange.isExcluded(this);
 +         } else {
 +            this.defaultActivationState = false;
 +         }

@@ -25,7 +25,7 @@
 +      }
 +      final JsonArray lunamuraSnapshot = jsonarray;
 +      final File lunamuraFile = this.f_11376_;
-+      com.mohistmc.LunamuraAsyncSave.runAsyncWrite(() -> {
++      com.mohistmc.LunamuraAsync.submit(() -> {
 +         try (BufferedWriter bufferedwriter = Files.newWriter(lunamuraFile, StandardCharsets.UTF_8)) {
 +            f_11375_.toJson((JsonElement)lunamuraSnapshot, bufferedwriter);
 +         } catch (Exception e) {

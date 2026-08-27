@@ -530,22 +530,17 @@
     }
  
     public void m_8886_() {
-@@ -674,6 +_,18 @@
+@@ -674,6 +_,13 @@
     }
  
     public void m_8647_(Entity p_8648_) {
-+      // Spigot + Lunamura ActivationRange 2.0 start
-+      p_8648_.activationRangeFullTickCount++;
++      // Spigot start - Entity Activation Range
 +      if (!ActivationRange.checkIfActive(p_8648_)) {
-+         p_8648_.activationRangeInactive = true;
 +         p_8648_.f_19797_++;
-+         if (p_8648_.canUpdate()) {
-+            p_8648_.inactiveTick();
-+         }
++         p_8648_.inactiveTick();
 +         return;
 +      }
-+      p_8648_.activationRangeInactive = false;
-+      // Spigot + Lunamura ActivationRange 2.0 end
++      // Spigot end
        p_8648_.m_146867_();
        ProfilerFiller profilerfiller = this.m_46473_();
        ++p_8648_.f_19797_;

@@ -33,8 +33,7 @@
     }
  
     private boolean m_151343_(Level p_151344_, BlockPos p_151345_) {
--      return p_151344_.m_45914_((double)p_151345_.m_123341_() + 0.5D, (double)p_151345_.m_123342_() + 0.5D, (double)p_151345_.m_123343_() + 0.5D, (double)this.f_45452_);
-+      return com.mohistmc.optimizations.nearbyplayers.NearbyPlayerIndex.hasNearbyAlivePlayer(p_151344_, (double)p_151345_.m_123341_() + 0.5D, (double)p_151345_.m_123342_() + 0.5D, (double)p_151345_.m_123343_() + 0.5D, (double)this.f_45452_);
+       return p_151344_.m_45914_((double)p_151345_.m_123341_() + 0.5D, (double)p_151345_.m_123342_() + 0.5D, (double)p_151345_.m_123343_() + 0.5D, (double)this.f_45452_);
     }
 @@ -131,16 +_,28 @@
                    entity.m_7678_(entity.m_20185_(), entity.m_20186_(), entity.m_20189_(), randomsource.m_188501_() * 360.0F, 0.0F);
